@@ -1,0 +1,32 @@
+# Cloud Build configuration for deploying static website
+steps:
+  # Step 1: Copy static files to Cloud Storage bucket
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'cp', '-r', '*', 'gs://${_BUCKET_NAME}/']
+    id: 'deploy-files'
+
+  # Step 2: Set Cache-Control headers for static assets
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.{html,css,js}']
+    id: 'set-cache-control'
+
+  # Step 3: Set public read access
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'acl', 'ch', '-r', '-u', 'AllUsers:R', 'gs://${_BUCKET_NAME}/']
+    id: 'set-public-access'
+
+# Substitutions to be configured in Cloud Build trigger
+substitutions:
+  _BUCKET_NAME: 'jakoblangtry.com' # Bucket name for static website hosting
+
+# Timeout for the entire build process
+timeout: '600s'
+
+# Only trigger builds on changes to specified files
+include:
+  - '**/*.html'
+  - '**/*.css'
+  - '**/*.js'
+  - '**/*.jpg'
+  - '**/*.png'
+  - '**/*.pdf'
