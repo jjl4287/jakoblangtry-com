@@ -23,7 +23,7 @@ substitutions:
 timeout: '600s'
 
 # Only trigger builds on changes to specified files
-include:
+includedFiles:
   - '**/*.html'
   - '**/*.css'
   - '**/*.js'
