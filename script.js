@@ -67,4 +67,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lastScroll = currentScroll;
     });
+    // Handle perspective effect for featured items
+    const featuredItems = document.querySelectorAll('.featured-item');
+
+    featuredItems.forEach(item => {
+        item.addEventListener('mousemove', (e) => {
+            const { left, top, width, height } = item.getBoundingClientRect();
+            const x = (e.clientX - left) / width;
+            const y = (e.clientY - top) / height;
+    
+            const tiltX = (y - 0.5) * 20; // Max tilt of 20 degrees
+            const tiltY = (x - 0.5) * -20;
+    
+            item.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
+        });
+    
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        });
+    });
 });

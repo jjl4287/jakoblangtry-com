@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'VVDS Rashfield';
+    src: local('VVDS Rashfield SemiBold'), local('VVDS-Rashfield-SemiBold'),
+        url('VVDSRashfield-SemiBold.woff2') format('woff2'),
+        url('VVDSRashfield-SemiBold.woff') format('woff'),
+        url('VVDSRashfield-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+  }
