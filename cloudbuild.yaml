@@ -5,15 +5,15 @@ steps:
     args: ['-m', 'cp', '-r', '*', 'gs://${_BUCKET_NAME}/']
     id: 'deploy-files'
 
-  # # Step 2: Set Cache-Control headers for static assets
-  # - name: 'gcr.io/cloud-builders/gsutil'
-  #   args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.{html,css,js}']
-  #   id: 'set-cache-control'
+  # Step 2: Set Cache-Control headers for static assets
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.{html,css,js}']
+    id: 'set-cache-control'
 
-  # # Step 3: Set public read access
-  # - name: 'gcr.io/cloud-builders/gsutil'
-  #   args: ['-m', 'acl', 'ch', '-r', '-u', 'AllUsers:R', 'gs://${_BUCKET_NAME}/']
-  #   id: 'set-public-access'
+  # Step 3: Set public read access
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'acl', 'ch', '-r', '-u', 'AllUsers:R', 'gs://${_BUCKET_NAME}/']
+    id: 'set-public-access'
 
 options:
    logging: NONE
