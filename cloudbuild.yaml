@@ -21,12 +21,3 @@ substitutions:
 
 # Timeout for the entire build process
 timeout: '600s'
-
-# Only trigger builds on changes to specified files
-includedFiles:
-  - '**/*.html'
-  - '**/*.css'
-  - '**/*.js'
-  - '**/*.jpg'
-  - '**/*.png'
-  - '**/*.pdf'
