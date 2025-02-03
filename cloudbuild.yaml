@@ -16,8 +16,7 @@ steps:
     id: 'set-public-access'
 
 options:
-   logging: GCS_ONLY
-   logsBucket: 'gs://jakoblangtry-logs'
+   logging: NONE
 
 # Substitutions to be configured in Cloud Build trigger
 substitutions:
