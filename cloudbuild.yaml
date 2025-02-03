@@ -12,7 +12,7 @@ steps:
 
   # Step 3: Set public read access
   - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'acl', 'ch', '-r', '-u', 'AllUsers:R', 'gs://${_BUCKET_NAME}/']
+    args: ['iam', 'ch', 'allUsers:objectViewer', 'gs://${_BUCKET_NAME}']
     id: 'set-public-access'
 
 options:
