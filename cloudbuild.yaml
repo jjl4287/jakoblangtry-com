@@ -15,6 +15,10 @@ steps:
     args: ['-m', 'acl', 'ch', '-r', '-u', 'AllUsers:R', 'gs://${_BUCKET_NAME}/']
     id: 'set-public-access'
 
+options:
+   logging: GCS_ONLY
+   logsBucket: 'gs://jakoblangtry-logs'
+
 # Substitutions to be configured in Cloud Build trigger
 substitutions:
   _BUCKET_NAME: 'jakoblangtry.com' # Bucket name for static website hosting
