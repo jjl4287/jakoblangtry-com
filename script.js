@@ -122,7 +122,7 @@ function executeCommand(command) {
             break;
         case 'projects':
             const projectsList = [
-                { name: 'Link Converter', url: 'https://convert.jakoblangtry.com' }
+                { name: 'Converter', url: 'https://convert.jakoblangtry.com' }
             ];
             appendOutput('Available projects:\n' + projectsList.map((project, index) => 
                 `${index + 1}. ${project.name} - ${project.url}`
@@ -130,7 +130,7 @@ function executeCommand(command) {
             appendOutput('Click on a project URL or type its name to open it.', 'info-text');
             break;
         default:
-            if (command.toLowerCase() === 'link converter') {
+            if (command.toLowerCase() === 'converter') {
                 appendOutput('Opening Link Converter...');
                 window.open('https://convert.jakoblangtry.com', '_blank');
                 break;
