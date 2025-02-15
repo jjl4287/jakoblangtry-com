@@ -85,7 +85,7 @@ function executeCommand(command) {
     
     switch (command) {
         case 'help':
-            appendOutput('Available commands: help, hostname, whoami, date, vi, vim, emacs, echo, sudo, theme, repo, clear, email, donate, weather, exit, curl, banner, resume', 'info-text');
+            appendOutput('Available commands: help, whoami, date, echo, repo, clear, email, weather, exit, curl, banner, resume, projects', 'info-text');
             break;
         case 'clear':
             cliOutput.innerHTML = '';
@@ -120,7 +120,21 @@ function executeCommand(command) {
             appendOutput('Opening resume...');
             window.open('JakobLangtrySep24.pdf', '_blank');
             break;
+        case 'projects':
+            const projectsList = [
+                { name: 'Link Converter', url: 'https://convert.jakoblangtry.com' }
+            ];
+            appendOutput('Available projects:\n' + projectsList.map((project, index) => 
+                `${index + 1}. ${project.name} - ${project.url}`
+            ).join('\n'), 'info-text');
+            appendOutput('Click on a project URL or type its name to open it.', 'info-text');
+            break;
         default:
+            if (command.toLowerCase() === 'link converter') {
+                appendOutput('Opening Link Converter...');
+                window.open('https://convert.jakoblangtry.com', '_blank');
+                break;
+            }
             if (command.startsWith('weather ')) {
                 const city = command.split(' ')[1];
                 appendOutput(`Weather report: ${city}\n\n_'""\'-.    Light snow\n \\_(   ).  -2(-7) °C\n  /(___(_)  ↗ 16 km/h\n   * * *   1 km\n  * * *    0.0 mm`, 'command-output');
