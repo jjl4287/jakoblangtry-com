@@ -1,1 +1,0 @@
-# jakoblangtry-com

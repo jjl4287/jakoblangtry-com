@@ -3,122 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page Not Found | Jakob Langtry</title>
+    <title>404 - Page Not Found</title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .error-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 2rem;
-            margin-top: -70px;
-        }
-
-        .error-code {
-            font-size: 8rem;
-            font-weight: bold;
-            margin: 0;
-            background: linear-gradient(90deg, #ff0000, #0066ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1;
-        }
-
-        .error-message {
-            font-size: 2rem;
-            margin: 1rem 0;
-            color: #333;
-        }
-
-        .error-description {
-            font-size: 1.2rem;
-            color: #666;
-            max-width: 600px;
-            margin: 1rem auto;
-        }
-
-        .error-actions {
-            margin-top: 2rem;
-        }
-
-        .error-button {
-            display: inline-block;
-            padding: 1rem 2rem;
-            margin: 0.5rem;
-            border: 2px solid #000;
-            border-radius: 4px;
-            text-decoration: none;
-            color: #000;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .error-button:hover {
-            background: #000;
-            color: #fff;
-            transform: translateY(-2px);
-        }
-    </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span class="music-icon">♪</span> Jakob.
+    <div class="terminal fullscreen">
+        <div id="cli-output" class="terminal-output">
+            <div class="error-text ascii-art">
+ ▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄▄▄▄  
+█       █       █      █ 
+█   ▄   █   ▄   █  ▄    █
+█  █▄█  █  █ █  █ █▄█   █
+█       █  █▄█  █      █ 
+█   ▄   █       █  ▄   █ 
+█▄▄█ █▄▄█▄▄▄▄▄▄▄█▄█ █▄▄█</div>
+            <div class="error-text command-output">bash: Page not found - Error 404</div>
+            <div class="info-text">The requested page could not be found. Type 'cd /' to return home.</div>
         </div>
-        <div class="hamburger">
-            <div class="line"></div>
-            <div class="line"></div>
-            <div class="line"></div>
+        <div class="terminal-input-line">
+            <span class="prompt">guest@jakoblangtry.com:~$</span>
+            <input type="text" id="cli-input" autofocus spellcheck="false" autocomplete="off">
         </div>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/#skills">Skills</a>
-            <a href="/#experiences">Experiences</a>
-            <a href="/#contact">Contact</a>
-        </div>
-    </nav>
-
-    <main>
-        <div class="error-container">
-            <h1 class="error-code">404</h1>
-            <h2 class="error-message">Page Not Found</h2>
-            <p class="error-description">
-                Looks like you've ventured into uncharted territory! The page you're looking for seems to have gone on an adventure of its own.
-            </p>
-            <div class="error-actions">
-                <a href="/" class="error-button">Back to Home</a>
-                <a href="/#featured" class="error-button">View Projects</a>
-            </div>
-        </div>
-    </main>
-
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>About</h3>
-                <a href="/">Home</a>
-                <a href="/resume.html">Resume</a>
-            </div>
-            <div class="footer-section">
-                <h3>Experience</h3>
-                <a href="/#experiences">Work Experience</a>
-                <a href="/#featured">Projects</a>
-            </div>
-            <div class="footer-section">
-                <h3>Contact</h3>
-                <a href="mailto:jjalangtry@gmail.com">jjalangtry@gmail.com</a>
-                <a href="mailto:jjl4287@g.rit.edu">jjl4287@g.rit.edu</a>
-                <div class="social-links">
-                    <a href="https://linkedin.com/in/jjalangtry" class="linkedin" target="_blank"></a>
-                    <a href="https://github.com/jjl4287" class="github" target="_blank"></a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
+    </div>
     <script src="script.js"></script>
 </body>
 </html>

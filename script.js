@@ -1,89 +1,133 @@
+let currentInput;
+let cliOutput;
+let inputLine;
+
 document.addEventListener('DOMContentLoaded', () => {
-    const hamburger = document.querySelector('.hamburger');
-    const navLinks = document.querySelector('.nav-links');
-    const lines = document.querySelectorAll('.line');
-
-    // Hamburger menu toggle
-    hamburger.addEventListener('click', () => {
-        navLinks.classList.toggle('active');
-        
-        // Animate hamburger to X
-        lines.forEach((line, index) => {
-            line.style.transition = 'transform 0.3s ease';
-            if (navLinks.classList.contains('active')) {
-                if (index === 0) line.style.transform = 'rotate(45deg) translate(5px, 5px)';
-                if (index === 1) line.style.opacity = '0';
-                if (index === 2) line.style.transform = 'rotate(-45deg) translate(7px, -6px)';
-            } else {
-                line.style.transform = 'none';
-                line.style.opacity = '1';
+    cliOutput = document.getElementById('cli-output');
+    displayBanner();
+    displayWelcomeMessage();
+    
+    const { inputLine: newInputLine, input } = createInputLine();
+    inputLine = newInputLine;
+    if (!cliOutput.contains(inputLine)) {
+        cliOutput.appendChild(inputLine);
+    }
+    
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const command = e.target.value.trim();
+            if (command) {
+                executeCommand(command);
+                e.target.value = '';
             }
-        });
-    });
-
-    // Close menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!hamburger.contains(e.target) && !navLinks.contains(e.target) && navLinks.classList.contains('active')) {
-            navLinks.classList.remove('active');
-            lines.forEach(line => {
-                line.style.transform = 'none';
-                line.style.opacity = '1';
-            });
         }
     });
-
-    // Smooth scroll for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-                // Close mobile menu if open
-                if (navLinks.classList.contains('active')) {
-                    navLinks.classList.remove('active');
-                    lines.forEach(line => {
-                        line.style.transform = 'none';
-                        line.style.opacity = '1';
-                    });
-                }
-            }
-        });
-    });
-
-    // Navbar scroll effect
-    let lastScroll = 0;
-    window.addEventListener('scroll', () => {
-        const navbar = document.querySelector('.navbar');
-        const currentScroll = window.pageYOffset;
-
-        if (currentScroll > lastScroll) {
-            navbar.style.transform = 'translateY(-100%)';
-        } else {
-            navbar.style.transform = 'translateY(0)';
-        }
-        lastScroll = currentScroll;
-    });
-    // Handle perspective effect for featured items
-    const featuredItems = document.querySelectorAll('.featured-item');
-
-    featuredItems.forEach(item => {
-        item.addEventListener('mousemove', (e) => {
-            const { left, top, width, height } = item.getBoundingClientRect();
-            const x = (e.clientX - left) / width;
-            const y = (e.clientY - top) / height;
     
-            const tiltX = (y - 0.5) * 20; // Max tilt of 20 degrees
-            const tiltY = (x - 0.5) * -20;
-    
-            item.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
-        });
-    
-        item.addEventListener('mouseleave', () => {
-            item.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
-        });
+    document.addEventListener('click', () => {
+        currentInput.focus();
     });
 });
+
+function createInputLine() {
+    const inputLine = document.createElement('div');
+    inputLine.className = 'terminal-input-line';
+    const prompt = document.createElement('span');
+    prompt.className = 'prompt';
+    prompt.textContent = 'guest@jakoblangtry.com:~$ ';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'cli-input';
+    input.setAttribute('spellcheck', 'false');
+    input.setAttribute('autocomplete', 'off');
+    
+    inputLine.appendChild(prompt);
+    inputLine.appendChild(input);
+    
+    input.focus();
+    currentInput = input;
+    return { inputLine, input };
+}
+
+function displayBanner() {
+    const banner = `
+     ██╗ █████╗ ██╗  ██╗ ██████╗ ██████╗     ██╗      █████╗ ███╗   ██╗ ██████╗████████╗██████╗ ██╗   ██╗
+     ██║██╔══██╗██║ ██╔╝██╔═══██╗██╔══██╗    ██║     ██╔══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
+     ██║███████║█████╔╝ ██║   ██║██████╔╝    ██║     ███████║██╔██╗ ██║██║  ███╗  ██║   ██████╔╝ ╚████╔╝ 
+██   ██║██╔══██║██╔═██╗ ██║   ██║██╔══██╗    ██║     ██╔══██║██║╚██╗██║██║   ██║  ██║   ██╔══██╗  ╚██╔╝  
+╚█████╔╝██║  ██║██║  ██╗╚██████╔╝██████╔╝    ███████╗██║  ██║██║ ╚████║╚██████╔╝  ██║   ██║  ██║   ██║   
+ ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   
+                                                                                                    v1.0.0
+`;
+    appendOutput(banner, 'ascii-art');
+}
+
+function displayWelcomeMessage() {
+    appendOutput('Welcome to Jakob Langtry\'s terminal interface.\nType \'help\' to see available commands.', 'info-text');
+}
+
+function appendOutput(text, className = '') {
+    const output = document.createElement('div');
+    output.className = className;
+    output.textContent = text;
+    if (inputLine && inputLine.parentNode === cliOutput) {
+        cliOutput.insertBefore(output, inputLine);
+    } else {
+        cliOutput.appendChild(output);
+    }
+    cliOutput.scrollTop = cliOutput.scrollHeight;
+}
+
+function executeCommand(command) {
+    const commandLine = document.createElement('div');
+    commandLine.textContent = `guest@jakoblangtry.com:~$ ${command}`;
+    cliOutput.insertBefore(commandLine, inputLine);
+    
+    switch (command) {
+        case 'help':
+            appendOutput('Available commands: help, hostname, whoami, date, vi, vim, emacs, echo, sudo, theme, repo, clear, email, donate, weather, exit, curl, banner, resume', 'info-text');
+            break;
+        case 'clear':
+            cliOutput.innerHTML = '';
+            displayBanner();
+            cliOutput.appendChild(inputLine);
+            break;
+        case 'whoami':
+            appendOutput('guest');
+            break;
+        case 'date':
+            appendOutput(new Date().toLocaleString());
+            break;
+        case 'banner':
+            displayBanner();
+            break;
+        case 'email':
+            appendOutput('Opening email client...');
+            window.location.href = 'mailto:jjalangtry@gmail.com';
+            break;
+        case 'repo':
+            appendOutput('Opening repository...');
+            window.open('https://github.com/jjl4287', '_blank');
+            break;
+        case 'weather':
+            appendOutput('Usage: weather [city]. Example: weather Brussels');
+            break;
+        case 'exit':
+            appendOutput('Goodbye! Closing terminal...');
+            setTimeout(() => window.close(), 1000);
+            break;
+        case 'resume':
+            appendOutput('Opening resume...');
+            window.open('JakobLangtrySep24.pdf', '_blank');
+            break;
+        default:
+            if (command.startsWith('weather ')) {
+                const city = command.split(' ')[1];
+                appendOutput(`Weather report: ${city}\n\n_'""\'-.    Light snow\n \\_(   ).  -2(-7) °C\n  /(___(_)  ↗ 16 km/h\n   * * *   1 km\n  * * *    0.0 mm`, 'command-output');
+            } else if (command.startsWith('echo ')) {
+                appendOutput(command.substring(5));
+            } else {
+                appendOutput(`Command not found: ${command}. Type 'help' for available commands.`, 'error-text');
+            }
+    }
+}
