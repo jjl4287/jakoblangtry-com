@@ -83,7 +83,8 @@ function executeCommand(command) {
     commandLine.textContent = `guest@jakoblangtry.com:~$ ${command}`;
     cliOutput.insertBefore(commandLine, inputLine);
     
-    switch (command) {
+    const normalizedCommand = command.toLowerCase();
+    switch (normalizedCommand) {
         case 'help':
             appendOutput('Available commands: help, whoami, date, echo, repo, clear, email, weather, exit, curl, banner, resume, projects', 'info-text');
             break;
@@ -130,15 +131,15 @@ function executeCommand(command) {
             appendOutput('Click on a project URL or type its name to open it.', 'info-text');
             break;
         default:
-            if (command.toLowerCase() === 'converter') {
+            if (normalizedCommand === 'converter') {
                 appendOutput('Opening Link Converter...');
                 window.open('https://convert.jakoblangtry.com', '_blank');
                 break;
             }
-            if (command.startsWith('weather ')) {
+            else if (normalizedCommand.startsWith('weather ')) {
                 const city = command.split(' ')[1];
-                appendOutput(`Weather report: ${city}\n\n_'""\'-.    Light snow\n \\_(   ).  -2(-7) °C\n  /(___(_)  ↗ 16 km/h\n   * * *   1 km\n  * * *    0.0 mm`, 'command-output');
-            } else if (command.startsWith('echo ')) {
+                appendOutput(`Weather report: ${city}\n\n_'""'-.    Light snow\n \_(   ).  -2(-7) °C\n  /(___(_)  ↗ 16 km/h\n   * * *   1 km\n  * * *    0.0 mm`, 'command-output');
+            } else if (normalizedCommand.startsWith('echo ')) {
                 appendOutput(command.substring(5));
             } else {
                 appendOutput(`Command not found: ${command}. Type 'help' for available commands.`, 'error-text');
