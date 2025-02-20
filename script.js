@@ -118,7 +118,7 @@ function executeCommand(command) {
             break;
         case 'resume':
             appendOutput('Opening resume...');
-            window.open('JakobLangtrySep24.pdf', '_blank');
+            window.open('JakobLangtryFeb25.pdf', '_blank');
             break;
         case 'projects':
             const projectsList = [
