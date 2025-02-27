@@ -1,30 +1,30 @@
 # Cloud Build configuration for deploying static website
 steps:
-  # Step 1: Install pnpm
-  - name: 'node:16'
-    entrypoint: 'npm'
-    args: ['install', '-g', 'pnpm']
-    id: 'install-pnpm'
-  
-  # Step 2: Install dependencies
-  - name: 'node:16'
-    entrypoint: 'pnpm'
-    args: ['install']
-    id: 'install-dependencies'
-
-  # Step 3: Set NODE_ENV to production for build
+  # Step 1: Install pnpm and dependencies
   - name: 'node:16'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        npm install -g pnpm
+        pnpm install
+    id: 'setup-dependencies'
+
+  # Step 2: Set NODE_ENV to production for build
+  - name: 'node:16'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm install -g pnpm
         export NODE_ENV=production
         pnpm start &
         sleep 5
         kill $!
     id: 'build-project'
+    waitFor: ['setup-dependencies']
 
-  # Step 4: Access OpenWeatherMap API Key from Secret Manager
+  # Step 3: Access OpenWeatherMap API Key from Secret Manager
   - name: 'gcr.io/cloud-builders/gcloud'
     entrypoint: 'bash'
     args:
@@ -41,19 +41,19 @@ steps:
     id: 'inject-api-key'
     waitFor: ['build-project']
 
-  # Step 5: Copy static files to Cloud Storage bucket
+  # Step 4: Copy static files to Cloud Storage bucket
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'cp', '-r', 'public/*', 'gs://${_BUCKET_NAME}/']
     id: 'deploy-files'
     waitFor: ['inject-api-key']
 
-  # Step 6: Set Cache-Control headers for static assets
+  # Step 5: Set Cache-Control headers for static assets
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.html', 'gs://${_BUCKET_NAME}/**/*.css', 'gs://${_BUCKET_NAME}/**/*.js']
     id: 'set-cache-control'
     waitFor: ['deploy-files']
 
-  # Step 7: Set public read access
+  # Step 6: Set public read access
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['iam', 'ch', 'allUsers:objectViewer', 'gs://${_BUCKET_NAME}']
     id: 'set-public-access'
