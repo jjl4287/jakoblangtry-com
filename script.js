@@ -1,3 +1,4 @@
+// Global variables for managing input and command history
 let currentInput;
 let cliOutput;
 let inputLine;
@@ -5,6 +6,24 @@ let commandHistory = [];
 let historyIndex = -1;
 let currentInputBuffer = '';
 
+// Check if text is currently being selected
+let isSelecting = false;
+
+/**
+ * Detects the operating system of the client.
+ * @returns {string} The name of the operating system.
+ */
+function detectOS() {
+    const platform = navigator.platform.toLowerCase();
+    if (platform.indexOf('win') !== -1) return 'windows';
+    if (platform.indexOf('mac') !== -1) return 'mac';
+    if (platform.indexOf('linux') !== -1) return 'linux';
+    if (platform.indexOf('android') !== -1) return 'android';
+    if (platform.indexOf('ios') !== -1) return 'ios';
+    return 'unknown';
+}
+
+// Initialize the terminal interface once the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     cliOutput = document.getElementById('cli-output');
     displayBanner();
@@ -16,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cliOutput.appendChild(inputLine);
     }
     
+    // Add event listener for handling command input
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             const command = e.target.value.trim();
@@ -29,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Add event listener for navigating command history
     input.addEventListener('keydown', (e) => {
         switch(e.key) {
             case 'ArrowUp':
@@ -58,11 +79,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 0);
     });
     
-    document.addEventListener('click', () => {
-        currentInput.focus();
+    // Track mouse selection state
+    document.addEventListener('mousedown', () => {
+        isSelecting = true;
     });
+    
+    document.addEventListener('mouseup', () => {
+        // Delay setting isSelecting to false to allow for selection to complete
+        setTimeout(() => {
+            isSelecting = false;
+        }, 100);
+    });
+    
+    // Only focus the input if we're not in the middle of selecting text
+    document.addEventListener('click', (e) => {
+        // Check if there's selected text
+        const selection = window.getSelection();
+        
+        // Only focus the input if:
+        // 1. There's no text selected or the selection is empty, AND
+        // 2. We're not in the middle of a selection operation
+        if ((!selection || selection.toString().trim() === '') && !isSelecting) {
+            currentInput.focus();
+        }
+        
+        // If user clicks directly on the input, always focus
+        if (e.target === currentInput) {
+            currentInput.focus();
+        }
+    });
+    
+    // Make the cli-output div selectable by adding these styles
+    if (cliOutput) {
+        cliOutput.style.userSelect = 'text';
+        cliOutput.style.webkitUserSelect = 'text';
+        cliOutput.style.MozUserSelect = 'text';
+        cliOutput.style.msUserSelect = 'text';
+    }
 });
 
+/**
+ * Creates a new input line for the terminal interface.
+ * @returns {Object} An object containing the input line and input element.
+ */
 function createInputLine() {
     const inputLine = document.createElement('div');
     inputLine.className = 'terminal-input-line';
@@ -84,8 +143,30 @@ function createInputLine() {
     return { inputLine, input };
 }
 
+/**
+ * Displays the ASCII art banner based on the operating system.
+ */
 function displayBanner() {
-    const banner = `
+    const os = detectOS();
+    
+    let banner;
+    
+    if (os === 'windows') {
+        // Windows-friendly ASCII art that displays correctly on Windows
+        banner = `
+        _       _       _     _                         _                     _             
+       (_)     | |     | |   | |                       | |                   | |            
+        _  __ _| | ___ | |__ | | __ _ _ __   __ _ _ __ | |_ _ __ _   _   ___| | ___  _ __  
+       | |/ _\` | |/ _ \\| '_ \\| |/ _\` | '_ \\ / _\` | '_ \\| __| '__| | | | / __| |/ _ \\| '_ \\ 
+       | | (_| | | (_) | |_) | | (_| | | | | (_| | | | | |_| |  | |_| | \\__ \\ | (_) | | | |
+       | |\\__,_|_|\\___/|_.__/|_|\\__,_|_| |_|\\__, |_| |_|\\__|_|   \\__, | |___/_|\\___/|_| |_|
+      _/ |                                    __/ |                __/ |                     
+     |__/                                    |___/                |___/                      
+                                                                                    v1.0.0
+`;
+    } else {
+        // Original ASCII art for Mac and other platforms
+        banner = `
      ██╗ █████╗ ██╗  ██╗ ██████╗ ██████╗     ██╗      █████╗ ███╗   ██╗ ██████╗████████╗██████╗ ██╗   ██╗
      ██║██╔══██╗██║ ██╔╝██╔═══██╗██╔══██╗    ██║     ██╔══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
      ██║███████║█████╔╝ ██║   ██║██████╔╝    ██║     ███████║██╔██╗ ██║██║  ███╗  ██║   ██████╔╝ ╚████╔╝ 
@@ -94,25 +175,61 @@ function displayBanner() {
  ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   
                                                                                                     v1.0.0
 `;
+    }
+    
     appendOutput(banner, 'ascii-art');
 }
 
+/**
+ * Displays a welcome message in the terminal interface.
+ */
 function displayWelcomeMessage() {
     appendOutput('Welcome to Jakob Langtry\'s terminal interface.\nType \'help\' to see available commands.', 'info-text');
 }
 
+/**
+ * Appends output to the CLI output area, preserving text selection.
+ * @param {string} text - The text to append.
+ * @param {string} [className=''] - The class name to apply to the output element.
+ */
 function appendOutput(text, className = '') {
+    // Save the current selection state
+    const selection = window.getSelection();
+    const selectedText = selection.toString();
+    let selectionRange = null;
+    
+    if (selection.rangeCount > 0) {
+        selectionRange = selection.getRangeAt(0).cloneRange();
+    }
+    
+    // Create and append the new output
     const output = document.createElement('div');
     output.className = className;
     output.textContent = text;
+    
     if (inputLine && inputLine.parentNode === cliOutput) {
         cliOutput.insertBefore(output, inputLine);
     } else {
         cliOutput.appendChild(output);
     }
+    
+    // Adjust scrolling without disturbing selection
     cliOutput.scrollTop = cliOutput.scrollHeight;
+    
+    // If there was a selection, try to restore it
+    if (selectedText && selectionRange) {
+        // Wait for DOM to update
+        setTimeout(() => {
+            selection.removeAllRanges();
+            selection.addRange(selectionRange);
+        }, 0);
+    }
 }
 
+/**
+ * Executes a command entered in the terminal interface.
+ * @param {string} command - The command to execute.
+ */
 function executeCommand(command) {
     const commandLine = document.createElement('div');
     commandLine.textContent = `guest@jakoblangtry.com:~$ ${command}`;
@@ -184,6 +301,10 @@ function executeCommand(command) {
     }
 }
 
+/**
+ * Fetches weather data for a specified city.
+ * @param {string} city - The city for which to fetch weather data.
+ */
 async function fetchWeather(city) {
     try {
         appendOutput(`Fetching weather data for ${city}...`);
@@ -342,8 +463,20 @@ async function fetchWeather(city) {
     }
 }
 
-// Specialized function for weather output to ensure proper formatting
+/**
+ * Appends weather output to the CLI output area.
+ * @param {string} text - The weather text to append.
+ */
 function appendWeatherOutput(text) {
+    // Save the current selection state
+    const selection = window.getSelection();
+    const selectedText = selection.toString();
+    let selectionRange = null;
+    
+    if (selection.rangeCount > 0) {
+        selectionRange = selection.getRangeAt(0).cloneRange();
+    }
+    
     const output = document.createElement('div');
     output.className = 'command-output';
     
@@ -363,10 +496,24 @@ function appendWeatherOutput(text) {
     } else {
         cliOutput.appendChild(output);
     }
+    
+    // Adjust scrolling without disturbing selection
     cliOutput.scrollTop = cliOutput.scrollHeight;
+    
+    // If there was a selection, try to restore it
+    if (selectedText && selectionRange) {
+        // Wait for DOM to update
+        setTimeout(() => {
+            selection.removeAllRanges();
+            selection.addRange(selectionRange);
+        }, 0);
+    }
 }
 
-// Function to display weather from weatherapi.com format
+/**
+ * Displays weather data from the Weather API.
+ * @param {Object} data - The weather data from the API.
+ */
 function displayWeatherApiReport(data) {
     const city = data.location.name;
     const region = data.location.region;
@@ -472,7 +619,11 @@ function displayWeatherApiReport(data) {
     appendWeatherOutput(report);
 }
 
-// Function to generate simulated weather data for fallback
+/**
+ * Generates simulated weather data for a city.
+ * @param {string} city - The city for which to generate simulated data.
+ * @returns {Object} Simulated weather data.
+ */
 function generateSimulatedWeatherData(city) {
     // Get current date and simulate 3 days
     const now = new Date();
@@ -563,11 +714,24 @@ function generateSimulatedWeatherData(city) {
     return simulated;
 }
 
-// Function to display simulated weather data
+/**
+ * Displays simulated weather data.
+ * @param {Object} data - The simulated weather data.
+ * @param {string} city - The city for which the data is displayed.
+ */
 function displaySimulatedWeatherReport(data, city) {
     displayWeatherReport(data, city, null, 'Simulation', data.lat, data.lon);
 }
 
+/**
+ * Displays a detailed weather report.
+ * @param {Object} data - The weather data.
+ * @param {string} city - The city name.
+ * @param {string} state - The state name.
+ * @param {string} country - The country name.
+ * @param {number} lat - Latitude of the location.
+ * @param {number} lon - Longitude of the location.
+ */
 function displayWeatherReport(data, city, state, country, lat, lon) {
     // Group forecast data by day
     const forecasts = data.list;
@@ -781,8 +945,8 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                         art = "     .-.     \n" +
                              "    (   ).   \n" +
                              "   (___(__)  \n" +
-                             "  ‚'‚'‚'‚'   \n" +
-                             "  ‚'‚'‚'‚'   ";
+                             "  ,',',','   \n" +
+                             "  ,',',','   ";
                     } else {
                         art = "     .-.     \n" +
                              "    (   ).   \n" +
@@ -819,13 +983,13 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                 } else if (weather.includes('haze') || description.includes('hazy')) {
                     art = "     \\   /   \n" +
                          "      .-.     \n" +
-                         "   –– (   ) ––\n" +
+                         "   -- (   ) --\n" +
                          "      `-'     \n" +
                          "     /   \\    ";
                 } else if (weather.includes('sun') || description.includes('sunny')) {
                     art = "    \\   /    \n" +
                          "     .-.     \n" +
-                         "  ── (   ) ──\n" +
+                         "  -- (   ) --\n" +
                          "     `-'     \n" +
                          "    /   \\    ";
                 } else if (description.includes('patchy')) {
@@ -837,9 +1001,9 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                 } else {
                     // Default fallback
                     art = "    \\   /    \n" +
-                         "       .-.   \n" +
-                         "  ── (   ) ──\n" +
-                         "       `-'   \n" +
+                         "     .-.     \n" +
+                         "  -- (   ) --\n" +
+                         "     `-'     \n" +
                          "    /   \\    ";
                 }
                 
@@ -901,18 +1065,33 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
     appendWeatherOutput(report);
 }
 
-// Helper function to center text in a cell
+/**
+ * Centers text within a given width.
+ * @param {string} text - The text to center.
+ * @param {number} width - The width to center within.
+ * @returns {string} The centered text.
+ */
 function centerText(text, width) {
     const padding = Math.floor((width - text.length) / 2);
     return ' '.repeat(padding) + text + ' '.repeat(width - text.length - padding);
 }
 
-// Helper function to convert Celsius to Fahrenheit
+/**
+ * Converts Celsius to Fahrenheit.
+ * @param {number} celsius - The temperature in Celsius.
+ * @returns {number} The temperature in Fahrenheit.
+ */
 function celsiusToFahrenheit(celsius) {
     return Math.round(celsius * 9/5 + 32);
 }
 
-// New function to build rows with box drawing characters
+/**
+ * Builds a compact row for a weather report.
+ * @param {Object} periods - The weather periods.
+ * @param {string} rowType - The type of row to build.
+ * @param {number} [cellWidth=25] - The width of each cell.
+ * @returns {string} The formatted row.
+ */
 function buildBoxCompactRow(periods, rowType, cellWidth = 25) {
     let row = '║';
     
@@ -1017,7 +1196,13 @@ function buildBoxCompactRow(periods, rowType, cellWidth = 25) {
     return row + '\n';
 }
 
-// Format cells to be more compact with box drawing characters
+/**
+ * Formats a cell for a compact weather report.
+ * @param {string} content - The content of the cell.
+ * @param {number} [cellWidth=25] - The width of the cell.
+ * @param {boolean} [useDoubleBox=false] - Whether to use double box characters.
+ * @returns {string} The formatted cell.
+ */
 function formatBoxCompactCell(content, cellWidth = 25, useDoubleBox = false) {
     const paddedContent = ' ' + content; // Add a space for better readability
     
@@ -1036,7 +1221,13 @@ function formatBoxCompactCell(content, cellWidth = 25, useDoubleBox = false) {
     return truncatedContent + ' '.repeat(Math.max(0, remainingSpace)) + rightBorder;
 }
 
-// Improve the getWeatherAscii function for better ASCII art and layout
+/**
+ * Generates ASCII art for weather conditions.
+ * @param {Object} forecast - The weather forecast data.
+ * @param {boolean} [isCurrent=false] - Whether this is the current weather.
+ * @param {number} [boxWidth=46] - The width of the ASCII art box.
+ * @returns {string} The ASCII art representation.
+ */
 function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
     const weather = forecast.weather[0].main.toLowerCase();
     const description = forecast.weather[0].description.toLowerCase();
@@ -1050,106 +1241,212 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
     const windSpeed = Math.round(forecast.wind.speed * 3.6); // Convert m/s to km/h
     const visibility = Math.round(forecast.visibility / 1000); // Convert m to km
     
+    // Detect OS to provide appropriate ASCII art
+    const os = detectOS();
+    
     // Enhanced ASCII art to match the template
     let ascii = '';
     
-    if (weather.includes('clear')) {
-        ascii = "    \\   /    \n" +
-               "      .-.    \n" +
-               "  ── (   ) ──\n" +
-               "      `-'    \n" +
-               "    /   \\    ";
-    } else if (weather.includes('cloud')) {
-        if (description.includes('few') || description.includes('scattered') || description.includes('partly')) {
-            ascii = "    \\  /     \n" +
-                   "  _ /\"\" .-.   \n" +
-                   "    \\_`(   ). \n" +
-                   "    /(___(__))\n" +
-                   "              ";
-        } else if (description.includes('broken') || description.includes('overcast')) {
-            ascii = "     .--.    \n" +
+    if (os === 'windows') {
+        // Windows-friendly ASCII art for weather conditions
+        if (weather.includes('clear')) {
+            ascii = "    \\   /    \n" +
+                   "     .-.     \n" +
+                   "  -- (   ) --\n" +
+                   "     `-'     \n" +
+                   "    /   \\    ";
+        } else if (weather.includes('cloud')) {
+            if (description.includes('few') || description.includes('scattered') || description.includes('partly')) {
+                ascii = "    \\  /     \n" +
+                       "  _ /\"\" .-.   \n" +
+                       "    \\_`(   ). \n" +
+                       "    /(___(__))\n" +
+                       "              ";
+            } else if (description.includes('broken') || description.includes('overcast')) {
+                ascii = "     .--.    \n" +
+                       "  .-(    ).  \n" +
+                       " (___.__)__) \n" +
+                       "              \n" +
+                       "              ";
+            } else {
+                ascii = "     .--.    \n" +
+                       "  .-(    ).  \n" +
+                       " (___.__)__) \n" +
+                       "              \n" +
+                       "              ";
+            }
+        } else if (weather.includes('rain')) {
+            if (description.includes('light') || description.includes('drizzle')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    ' ' ' '  \n" +
+                       "   ' ' ' '   ";
+            } else if (description.includes('heavy')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "  ,',',','   \n" +
+                       "  ,',',','   ";
+            } else {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    ' ' ' '  \n" +
+                       "   ' ' ' '   ";
+            }
+        } else if (weather.includes('snow')) {
+            if (description.includes('blowing') || description.includes('heavy')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "   * * * *   \n" +
+                       "  * * * *    ";
+            } else {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    *  *  *  \n" +
+                       "   *  *  *   ";
+            }
+        } else if (weather.includes('thunder') || weather.includes('storm')) {
+            ascii = "     .-.     \n" +
+                   "    (   ).   \n" +
+                   "   (___(__)  \n" +
+                   "    / / /    \n" +
+                   "   / / /     ";
+        } else if (weather.includes('fog') || weather.includes('mist')) {
+            ascii = " _ _ _ _ _  \n" +
+                   "  _ _ _ _ _  \n" +
+                   " _ _ _ _ _   \n" +
+                   "  _ _ _ _ _  \n" +
+                   " _ _ _ _ _   ";
+        } else if (weather.includes('haze') || description.includes('hazy')) {
+            ascii = "     \\   /   \n" +
+                   "      .-.     \n" +
+                   "   -- (   ) --\n" +
+                   "      `-'     \n" +
+                   "     /   \\    ";
+        } else if (weather.includes('sun') || description.includes('sunny')) {
+            ascii = "    \\   /    \n" +
+                   "     .-.     \n" +
+                   "  -- (   ) --\n" +
+                   "     `-'     \n" +
+                   "    /   \\    ";
+        } else if (description.includes('patchy')) {
+            ascii = "     .-.     \n" +
                    "  .-(    ).  \n" +
                    " (___.__)__) \n" +
-                   "              \n" +
-                   "              ";
+                   "  * * * *    \n" +
+                   " * * * *     ";
         } else {
-            ascii = "     .--.    \n" +
-                   "  .-(    ).  \n" +
-                   " (___.__)__) \n" +
-                   "              \n" +
-                   "              ";
+            // Default fallback
+            ascii = "    \\   /    \n" +
+                   "     .-.     \n" +
+                   "  -- (   ) --\n" +
+                   "     `-'     \n" +
+                   "    /   \\    ";
         }
-    } else if (weather.includes('rain')) {
-        if (description.includes('light') || description.includes('drizzle')) {
-            ascii = "     .-.     \n" +
-                   "    (   ).   \n" +
-                   "   (___(__)  \n" +
-                   "    ' ' ' '  \n" +
-                   "   ' ' ' '   ";
-        } else if (description.includes('heavy')) {
-            ascii = "     .-.     \n" +
-                   "    (   ).   \n" +
-                   "   (___(__)  \n" +
-                   "  ‚'‚'‚'‚'   \n" +
-                   "  ‚'‚'‚'‚'   ";
-        } else {
-            ascii = "     .-.     \n" +
-                   "    (   ).   \n" +
-                   "   (___(__)  \n" +
-                   "    ' ' ' '  \n" +
-                   "   ' ' ' '   ";
-        }
-    } else if (weather.includes('snow')) {
-        if (description.includes('blowing') || description.includes('heavy')) {
-            ascii = "     .-.     \n" +
-                   "    (   ).   \n" +
-                   "   (___(__)  \n" +
-                   "   * * * *   \n" +
-                   "  * * * *    ";
-        } else {
-            ascii = "     .-.     \n" +
-                   "    (   ).   \n" +
-                   "   (___(__)  \n" +
-                   "    *  *  *  \n" +
-                   "   *  *  *   ";
-        }
-    } else if (weather.includes('thunder') || weather.includes('storm')) {
-        ascii = "     .-.     \n" +
-               "    (   ).   \n" +
-               "   (___(__)  \n" +
-               "    ⚡⚡⚡    \n" +
-               "   ⚡⚡⚡     ";
-    } else if (weather.includes('fog') || weather.includes('mist')) {
-        ascii = " _ _ _ _ _  \n" +
-               "  _ _ _ _ _  \n" +
-               " _ _ _ _ _   \n" +
-               "  _ _ _ _ _  \n" +
-               " _ _ _ _ _   ";
-    } else if (weather.includes('haze') || description.includes('hazy')) {
-        ascii = "     \\   /   \n" +
-               "      .-.     \n" +
-               "   –– (   ) ––\n" +
-               "      `-'     \n" +
-               "     /   \\    ";
-    } else if (weather.includes('sun') || description.includes('sunny')) {
-        ascii = "    \\   /    \n" +
-               "     .-.     \n" +
-               "  ── (   ) ──\n" +
-               "     `-'     \n" +
-               "    /   \\    ";
-    } else if (description.includes('patchy')) {
-        ascii = "     .-.     \n" +
-               "  .-(    ).  \n" +
-               " (___.__)__) \n" +
-               "  * * * *    \n" +
-               " * * * *     ";
     } else {
-        // Default fallback
-        ascii = "    \\   /    \n" +
-               "      .-.    \n" +
-               "  ── (   ) ──\n" +
-               "      `-'    \n" +
-               "    /   \\    ";
+        // Original ASCII art for Mac and other platforms
+        if (weather.includes('clear')) {
+            ascii = "    \\   /    \n" +
+                   "      .-.    \n" +
+                   "  ── (   ) ──\n" +
+                   "      `-'    \n" +
+                   "    /   \\    ";
+        } else if (weather.includes('cloud')) {
+            if (description.includes('few') || description.includes('scattered') || description.includes('partly')) {
+                ascii = "    \\  /     \n" +
+                       "  _ /\"\" .-.   \n" +
+                       "    \\_`(   ). \n" +
+                       "    /(___(__))\n" +
+                       "              ";
+            } else if (description.includes('broken') || description.includes('overcast')) {
+                ascii = "     .--.    \n" +
+                       "  .-(    ).  \n" +
+                       " (___.__)__) \n" +
+                       "              \n" +
+                       "              ";
+            } else {
+                ascii = "     .--.    \n" +
+                       "  .-(    ).  \n" +
+                       " (___.__)__) \n" +
+                       "              \n" +
+                       "              ";
+            }
+        } else if (weather.includes('rain')) {
+            if (description.includes('light') || description.includes('drizzle')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    ' ' ' '  \n" +
+                       "   ' ' ' '   ";
+            } else if (description.includes('heavy')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "  ,',',','   \n" +
+                       "  ,',',','   ";
+            } else {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    ' ' ' '  \n" +
+                       "   ' ' ' '   ";
+            }
+        } else if (weather.includes('snow')) {
+            if (description.includes('blowing') || description.includes('heavy')) {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "   * * * *   \n" +
+                       "  * * * *    ";
+            } else {
+                ascii = "     .-.     \n" +
+                       "    (   ).   \n" +
+                       "   (___(__)  \n" +
+                       "    *  *  *  \n" +
+                       "   *  *  *   ";
+            }
+        } else if (weather.includes('thunder') || weather.includes('storm')) {
+            ascii = "     .-.     \n" +
+                   "    (   ).   \n" +
+                   "   (___(__)  \n" +
+                   "    ⚡⚡⚡    \n" +
+                   "   ⚡⚡⚡     ";
+        } else if (weather.includes('fog') || weather.includes('mist')) {
+            ascii = " _ _ _ _ _  \n" +
+                   "  _ _ _ _ _  \n" +
+                   " _ _ _ _ _   \n" +
+                   "  _ _ _ _ _  \n" +
+                   " _ _ _ _ _   ";
+        } else if (weather.includes('haze') || description.includes('hazy')) {
+            ascii = "     \\   /   \n" +
+                   "      .-.     \n" +
+                   "   –– (   ) ––\n" +
+                   "      `-'     \n" +
+                   "     /   \\    ";
+        } else if (weather.includes('sun') || description.includes('sunny')) {
+            ascii = "    \\   /    \n" +
+                   "     .-.     \n" +
+                   "  ── (   ) ──\n" +
+                   "     `-'     \n" +
+                   "    /   \\    ";
+        } else if (description.includes('patchy')) {
+            ascii = "     .-.     \n" +
+                   "  .-(    ).  \n" +
+                   " (___.__)__) \n" +
+                   "  * * * *    \n" +
+                   " * * * *     ";
+        } else {
+            // Default fallback
+            ascii = "    \\   /    \n" +
+                   "     .-.     \n" +
+                   "  ── (   ) ──\n" +
+                   "      `-'     \n" +
+                   "    /   \\    ";
+        }
     }
     
     // Format temperature with range as in the image

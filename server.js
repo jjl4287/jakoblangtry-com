@@ -1,8 +1,10 @@
+// Load environment variables from .env file
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+// Initialize Express application
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -11,7 +13,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 const isFirstRun = !process.env.NODEMON_RESTART;
 process.env.NODEMON_RESTART = 'true';
 
-// Function to inject environment variables into env.js
+/**
+ * Injects environment variables into the env.js file.
+ * Handles different logic for production and development environments.
+ */
 function injectEnvVariables() {
   const envJsPath = path.join(__dirname, 'env.js');
   let envJsContent = fs.readFileSync(envJsPath, 'utf8');
@@ -51,7 +56,7 @@ if (isFirstRun) {
   console.log('Nodemon restart detected - skipping file processing');
 }
 
-// Serve static files
+// Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve the index.html file for any route
@@ -59,12 +64,15 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start the server
+// Start the server and listen on the specified port
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Function to copy necessary files to public directory
+/**
+ * Copies necessary files to the public directory.
+ * Logs the status of each file copy operation.
+ */
 function copyFilesToPublic() {
   const filesToCopy = ['index.html', 'script.js', 'styles.css', 'IMG_1542.jpeg'];
   

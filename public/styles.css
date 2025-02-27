@@ -21,12 +21,20 @@ body {
     padding: 16px;
     display: flex;
     flex-direction: column;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .terminal-output {
     color: #98c379;
     overflow-y: auto;
     padding-bottom: 16px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .prompt {
@@ -74,6 +82,10 @@ body {
     line-height: 1.0;
     margin-bottom: 16px;
     font-family: 'JetBrains Mono', monospace;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .command-output {
@@ -88,24 +100,52 @@ body {
     max-width: 100%;
     word-wrap: normal;
     overflow-wrap: normal;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .info-text {
     color: #61afef;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .error-text {
     color: #e06c75;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 .success-text {
     color: #98c379;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 /* Fixed-width container for weather output to prevent responsive layout changes */
 .weather-container {
     display: inline-block;
     min-width: 800px;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* Make sure pre elements are selectable for weather output */
+pre {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
 }
 
 /* Media Queries */
