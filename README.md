@@ -8,6 +8,7 @@ A terminal-style personal website showcasing my professional profile and project
 - CSS3
 - Vanilla JavaScript
 - Google Cloud Platform for hosting
+- Node.js and Express for server-side logic
 
 ## 🚀 Getting Started
 
@@ -19,16 +20,17 @@ A terminal-style personal website showcasing my professional profile and project
    cd jakoblangtry-com
    ```
 
-2. Open the project in your preferred code editor.
-
-3. Start a local development server (you can use Python's built-in server or any other method):
+2. Install dependencies:
    ```bash
-   python -m http.server 8000
-   # or
-   python3 -m http.server 8000
+   npm install
    ```
 
-4. Visit `http://localhost:8000` in your web browser.
+3. Start the development server:
+   ```bash
+   npm start
+   ```
+
+4. Visit `http://localhost:3001` in your web browser.
 
 ### Available Commands
 
@@ -58,7 +60,9 @@ jakoblangtry-com/
 ├── index.html          # Main HTML file
 ├── styles.css          # CSS styles
 ├── script.js           # Terminal functionality and interactions
-├── 404.html           # Custom 404 error page
-├── cloudbuild.yaml    # GCP deployment configuration
-└── IMG_1542.jpeg      # Profile image
+├── 404.html            # Custom 404 error page
+├── cloudbuild.yaml     # GCP deployment configuration
+├── server.js           # Node.js server setup
+├── .env                # Environment variables
+└── public/             # Public assets and files
 ```
