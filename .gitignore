@@ -21,4 +21,7 @@ Thumbs.db
 # Build and Deploy
 /dist
 /build
-.eslintcache 
+.eslintcache
+
+# Public Directory
+public/ 
