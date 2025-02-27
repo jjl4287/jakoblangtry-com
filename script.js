@@ -146,7 +146,7 @@ function executeCommand(command) {
             window.open('https://github.com/jjl4287', '_blank');
             break;
         case 'weather':
-            appendOutput('Usage: weather [city]. Example: weather Brussels');
+            appendOutput('Usage: weather [city or location]. Examples:\n  weather New York\n  weather Syracuse NY\n  weather London, UK\n  weather Paris France', 'info-text');
             break;
         case 'exit':
             appendOutput('Goodbye! Closing terminal...');
@@ -172,7 +172,9 @@ function executeCommand(command) {
                 break;
             }
             else if (normalizedCommand.startsWith('weather ')) {
-                const city = command.split(' ')[1];
+                const city = command.substring(8).trim(); // Get everything after "weather "
+                
+                // We're now handling the formatting in fetchWeather function
                 fetchWeather(city);
             } else if (normalizedCommand.startsWith('echo ')) {
                 appendOutput(command.substring(5));
@@ -186,6 +188,72 @@ async function fetchWeather(city) {
     try {
         appendOutput(`Fetching weather data for ${city}...`);
         
+        // Format city name for best API results
+        let formattedCity = city;
+        let isUsLocation = false;
+        
+        // Add logic to better handle queries with region names
+        if (!city.includes(',')) {
+            // Check for US state abbreviations first as they're most problematic
+            const stateAbbrs = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 
+                               'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
+                               'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 
+                               'VA', 'WA', 'WV', 'WI', 'WY', 'DC'];
+            
+            // If the city has multiple words, check if the last word is a state abbreviation
+            if (city.includes(' ')) {
+                const parts = city.split(' ');
+                const lastPart = parts[parts.length - 1].toUpperCase();
+                if (stateAbbrs.includes(lastPart)) {
+                    const cityPart = parts.slice(0, parts.length - 1).join(' ');
+                    formattedCity = `${cityPart}, ${lastPart}`;
+                    isUsLocation = true;
+                }
+            }
+            
+            // Check for common formats like "City State" where State is a full name
+            const stateNames = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 
+                               'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 
+                               'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 
+                               'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 
+                               'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 
+                               'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 
+                               'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 
+                               'Wisconsin', 'Wyoming'];
+            
+            // Improved case-insensitive state name matching
+            for (const state of stateNames) {
+                const statePattern = new RegExp(`\\s${state}$`, 'i');
+                if (statePattern.test(city)) {
+                    const cityPart = city.substring(0, city.length - state.length - 1);
+                    formattedCity = `${cityPart}, ${state}`;
+                    isUsLocation = true;
+                    break;
+                }
+            }
+            
+            // Check for common patterns of city followed by country name without comma
+            if (!isUsLocation) {
+                const commonCountries = ['USA', 'US', 'UK', 'France', 'Germany', 'Canada', 'Italy', 'Spain', 'Japan', 'China', 'Russia', 'Brazil', 'Australia'];
+                
+                for (const country of commonCountries) {
+                    const countryPattern = new RegExp(`\\s${country}$`, 'i');
+                    if (countryPattern.test(city)) {
+                        const cityPart = city.substring(0, city.length - country.length - 1);
+                        formattedCity = `${cityPart}, ${country}`;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // For US locations, specifically help the API by adding USA if not present
+        if (isUsLocation && !formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')) {
+            formattedCity = `${formattedCity}, USA`;
+        }
+        
+        console.log(`Formatted city: ${formattedCity}`); // Debug output
+        
         // Try to fetch real weather data
         try {
             // Get API key from window.ENV (injected by server)
@@ -193,14 +261,36 @@ async function fetchWeather(city) {
             
             // If we have a valid API key, use OpenWeatherMap API
             if (apiKey && apiKey !== 'REPLACE_WITH_YOUR_API_KEY' && apiKey !== '') {
-                const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${apiKey}`;
+                const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(formattedCity)}&limit=1&appid=${apiKey}`;
                 
                 // First get coordinates for the city
                 const geoResponse = await fetch(geoUrl);
                 const geoData = await geoResponse.json();
                 
                 if (!geoData.length) {
-                    appendOutput(`City "${city}" not found.`, 'error-text');
+                    // Try adding "USA" if it's likely a US city but we couldn't find it
+                    if (!formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')) {
+                        const usFormattedCity = `${formattedCity}, USA`;
+                        const usGeoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(usFormattedCity)}&limit=1&appid=${apiKey}`;
+                        
+                        const usGeoResponse = await fetch(usGeoUrl);
+                        const usGeoData = await usGeoResponse.json();
+                        
+                        if (usGeoData.length) {
+                            const { lat, lon, name, state, country } = usGeoData[0];
+                            
+                            // Now fetch the weather forecast with the coordinates
+                            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+                            const weatherResponse = await fetch(forecastUrl);
+                            const weatherData = await weatherResponse.json();
+                            
+                            // Display the weather report
+                            displayWeatherReport(weatherData, name, state, country, lat, lon);
+                            return;
+                        }
+                    }
+                    
+                    appendOutput(`City "${city}" not found. Please try a different format like "City, State" or "City, Country".`, 'error-text');
                     return;
                 }
                 
@@ -217,13 +307,26 @@ async function fetchWeather(city) {
             }
             
             // Alternatively, try using weatherapi.com (free tier, no API key required for demo)
-            const weatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=0236abd99deb4da5ace70557231307&q=${encodeURIComponent(city)}&days=3&aqi=no&alerts=no`;
+            const weatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=0236abd99deb4da5ace70557231307&q=${encodeURIComponent(formattedCity)}&days=3&aqi=no&alerts=no`;
             const response = await fetch(weatherApiUrl);
             
             if (response.ok) {
                 const data = await response.json();
                 displayWeatherApiReport(data);
                 return;
+            } else {
+                // If the first API call failed, try with "USA" added for potential US cities
+                if (!formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')) {
+                    const usFormattedCity = `${formattedCity}, USA`;
+                    const usWeatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=0236abd99deb4da5ace70557231307&q=${encodeURIComponent(usFormattedCity)}&days=3&aqi=no&alerts=no`;
+                    
+                    const usResponse = await fetch(usWeatherApiUrl);
+                    if (usResponse.ok) {
+                        const usData = await usResponse.json();
+                        displayWeatherApiReport(usData);
+                        return;
+                    }
+                }
             }
         } catch (error) {
             console.error("API error:", error);
@@ -231,8 +334,8 @@ async function fetchWeather(city) {
         }
         
         // Fallback to simulated data if no API key or API calls fail
-        const simulatedData = generateSimulatedWeatherData(city);
-        displaySimulatedWeatherReport(simulatedData, city);
+        const simulatedData = generateSimulatedWeatherData(formattedCity);
+        displaySimulatedWeatherReport(simulatedData, formattedCity);
         
     } catch (error) {
         appendOutput(`Error fetching weather data: ${error.message}`, 'error-text');
@@ -643,14 +746,14 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                 
                 if (weather.includes('clear')) {
                     art = "    \\   /    \n" +
-                         "     .-.     \n" +
+                         "      .-.    \n" +
                          "  ── (   ) ──\n" +
-                         "     `-'     \n" +
+                         "      `-'    \n" +
                          "    /   \\    ";
                 } else if (weather.includes('cloud')) {
                     if (description.includes('few') || description.includes('scattered') || description.includes('partly')) {
                         art = "    \\  /     \n" +
-                             "  _ /\"\".-.    \n" +
+                             "  _ /\"\" .-.   \n" +
                              "    \\_`(   ). \n" +
                              "    /(___(__))\n" +
                              "              ";
@@ -734,9 +837,9 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                 } else {
                     // Default fallback
                     art = "    \\   /    \n" +
-                         "     .-.     \n" +
+                         "       .-.   \n" +
                          "  ── (   ) ──\n" +
-                         "     `-'     \n" +
+                         "       `-'   \n" +
                          "    /   \\    ";
                 }
                 
@@ -952,14 +1055,14 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
     
     if (weather.includes('clear')) {
         ascii = "    \\   /    \n" +
-               "     .-.     \n" +
+               "      .-.    \n" +
                "  ── (   ) ──\n" +
-               "     `-'     \n" +
+               "      `-'    \n" +
                "    /   \\    ";
     } else if (weather.includes('cloud')) {
         if (description.includes('few') || description.includes('scattered') || description.includes('partly')) {
             ascii = "    \\  /     \n" +
-                   "  _ /\"\".-.    \n" +
+                   "  _ /\"\" .-.   \n" +
                    "    \\_`(   ). \n" +
                    "    /(___(__))\n" +
                    "              ";
@@ -1043,9 +1146,9 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
     } else {
         // Default fallback
         ascii = "    \\   /    \n" +
-               "     .-.     \n" +
+               "      .-.    \n" +
                "  ── (   ) ──\n" +
-               "     `-'     \n" +
+               "      `-'    \n" +
                "    /   \\    ";
     }
     
