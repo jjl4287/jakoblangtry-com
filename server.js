@@ -42,6 +42,7 @@ function injectEnvVariables() {
 const publicDir = path.join(__dirname, 'public');
 if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir);
+  console.log('Created public directory');
 }
 
 // Only process files on initial startup
@@ -67,6 +68,7 @@ app.get('*', (req, res) => {
 // Start the server and listen on the specified port
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Running in ${isProduction ? 'production' : 'development'} mode`);
 });
 
 /**
@@ -87,4 +89,6 @@ function copyFilesToPublic() {
       console.warn(`Warning: ${file} not found in source directory`);
     }
   });
+  
+  console.log('All necessary files have been copied to the public directory');
 } 

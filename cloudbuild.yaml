@@ -18,9 +18,19 @@ steps:
       - |
         npm install -g pnpm
         export NODE_ENV=production
+        # Ensure public directory exists
+        mkdir -p public
+        # Copy necessary files to public
+        cp index.html public/
+        cp script.js public/
+        cp styles.css public/
+        cp IMG_1542.jpeg public/
+        # Start server briefly to generate env.js
         pnpm start &
         sleep 5
         kill $!
+        # Log status
+        ls -la public/
     id: 'build-project'
     waitFor: ['setup-dependencies']
 
@@ -38,6 +48,8 @@ steps:
 
         // Expose the environment to the window
         window.ENV = ENV;" > public/env.js
+        # Verify env.js was created (without printing sensitive data)
+        ls -la public/
     id: 'inject-api-key'
     waitFor: ['build-project']
 
@@ -53,11 +65,23 @@ steps:
     id: 'set-cache-control'
     waitFor: ['deploy-files']
 
-  # Step 6: Set public read access
+  # Step 6: Set Cache-Control headers for images
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=86400', 'gs://${_BUCKET_NAME}/**/*.jpeg', 'gs://${_BUCKET_NAME}/**/*.jpg', 'gs://${_BUCKET_NAME}/**/*.png', 'gs://${_BUCKET_NAME}/**/*.gif']
+    id: 'set-image-cache-control'
+    waitFor: ['deploy-files']
+
+  # Step 7: Set public read access
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['iam', 'ch', 'allUsers:objectViewer', 'gs://${_BUCKET_NAME}']
     id: 'set-public-access'
-    waitFor: ['set-cache-control']
+    waitFor: ['set-cache-control', 'set-image-cache-control']
+
+  # Step 8: Verify deployment
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: ['ls', '-l', 'gs://${_BUCKET_NAME}/']
+    id: 'verify-deployment'
+    waitFor: ['set-public-access']
 
 options:
    logging: CLOUD_LOGGING_ONLY
