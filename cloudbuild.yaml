@@ -53,9 +53,23 @@ steps:
     id: 'inject-api-key'
     waitFor: ['build-project']
 
-  # Step 4: Copy static files to Cloud Storage bucket
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'cp', '-r', 'public/*', 'gs://${_BUCKET_NAME}/']
+  # Step 4: Copy static files to Cloud Storage bucket with explicit content types
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Copy HTML, JS, CSS files
+        gsutil -m cp -r public/index.html gs://${_BUCKET_NAME}/
+        gsutil -m cp -r public/script.js gs://${_BUCKET_NAME}/
+        gsutil -m cp -r public/styles.css gs://${_BUCKET_NAME}/
+        gsutil -m cp -r public/env.js gs://${_BUCKET_NAME}/
+        
+        # Copy image with explicit content type
+        gsutil -h "Content-Type:image/jpeg" cp public/IMG_1542.jpeg gs://${_BUCKET_NAME}/
+        
+        # List bucket contents to verify
+        gsutil ls -l gs://${_BUCKET_NAME}/
     id: 'deploy-files'
     waitFor: ['inject-api-key']
 
@@ -87,9 +101,17 @@ steps:
     id: 'set-public-access'
     waitFor: ['set-cache-control', 'set-image-cache-control']
 
-  # Step 8: Verify deployment
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['ls', '-l', 'gs://${_BUCKET_NAME}/']
+  # Step 8: Verify deployment and check content types
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Checking content type of image file:"
+        gsutil stat gs://${_BUCKET_NAME}/IMG_1542.jpeg
+        
+        echo "Listing all files in bucket:"
+        gsutil ls -L gs://${_BUCKET_NAME}/
     id: 'verify-deployment'
     waitFor: ['set-public-access']
 

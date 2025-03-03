@@ -30,8 +30,8 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    text-align: right;
+    align-items: flex-start;
+    text-align: left;
     position: sticky;
     top: 0;
     border-left: 1px solid #98c379;
@@ -56,7 +56,7 @@ body {
 /* Social Media Links */
 .social-links {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 12px;
     width: 100%;
     margin-bottom: 20px;
@@ -119,7 +119,7 @@ body {
     line-height: 1.5;
     width: 100%;
     position: relative;
-    text-align: right;
+    text-align: left;
 }
 
 #typed-bio {
