@@ -24,7 +24,7 @@ steps:
         cp index.html public/
         cp script.js public/
         cp styles.css public/
-        cp IMG_1542.jpeg public/
+        # Image will be uploaded separately in step 4
         # Start server briefly to generate env.js
         pnpm start &
         sleep 5
@@ -65,8 +65,14 @@ steps:
         gsutil -m cp -r public/styles.css gs://${_BUCKET_NAME}/
         gsutil -m cp -r public/env.js gs://${_BUCKET_NAME}/
         
-        # Copy image with explicit content type
-        gsutil -h "Content-Type:image/jpeg" cp public/IMG_1542.jpeg gs://${_BUCKET_NAME}/
+        # Upload image directly from source with explicit content type
+        # This uses the same command that worked manually
+        echo "Uploading image with explicit content type"
+        gsutil -h "Content-Type:image/jpeg" cp -v IMG_1542.jpeg gs://${_BUCKET_NAME}/
+        
+        # Verify image was uploaded correctly
+        echo "Verifying uploaded image:"
+        gsutil stat gs://${_BUCKET_NAME}/IMG_1542.jpeg
         
         # List bucket contents to verify
         gsutil ls -l gs://${_BUCKET_NAME}/
@@ -107,7 +113,7 @@ steps:
     args:
       - '-c'
       - |
-        echo "Checking content type of image file:"
+        echo "Checking content type and size of image file:"
         gsutil stat gs://${_BUCKET_NAME}/IMG_1542.jpeg
         
         echo "Listing all files in bucket:"
