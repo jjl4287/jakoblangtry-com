@@ -33,6 +33,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the CLI 
     initCLI();
+    
+    // Ensure terminal input is focused on page load and when window gains focus
+    setTimeout(() => {
+        if (currentInput) {
+            currentInput.focus();
+        }
+    }, 100);
+    
+    // Refocus the terminal when the window gets focus
+    window.addEventListener('focus', () => {
+        if (currentInput) {
+            currentInput.focus();
+        }
+    });
 });
 
 // Setup Bio typing animation
@@ -50,6 +64,13 @@ function setupBioTypingAnimation() {
             typedBioElement.textContent += bioText.charAt(charIndex);
             charIndex++;
             setTimeout(typeText, Math.random() * 50 + 30); // Random typing speed for realistic effect
+        } else {
+            // Stop cursor blinking after text is complete
+            const cursor = document.querySelector('.cursor');
+            if (cursor) {
+                cursor.style.animation = 'none';
+                cursor.style.opacity = '0'; // Hide the cursor
+            }
         }
     }
     
@@ -79,14 +100,23 @@ function createInputLine() {
     prompt.className = 'prompt';
     prompt.textContent = 'guest@jakoblangtry.com:~$ ';
     
+    const inputWrapper = document.createElement('div');
+    inputWrapper.className = 'input-wrapper';
+    
     const input = document.createElement('input');
     input.type = 'text';
     input.id = 'cli-input';
     input.setAttribute('spellcheck', 'false');
     input.setAttribute('autocomplete', 'off');
     
+    const cursor = document.createElement('span');
+    cursor.className = 'terminal-cursor';
+    
+    inputWrapper.appendChild(input);
+    inputWrapper.appendChild(cursor);
+    
     inputLine.appendChild(prompt);
-    inputLine.appendChild(input);
+    inputLine.appendChild(inputWrapper);
     
     input.focus();
     currentInput = input;
@@ -97,26 +127,8 @@ function createInputLine() {
  * Displays the ASCII art banner based on the operating system.
  */
 function displayBanner() {
-    const os = detectOS();
-    
-    let banner;
-    
-    if (os === 'windows') {
-        // Windows-friendly ASCII art that displays correctly on Windows
-        banner = `
-        _       _       _     _                         _                     _             
-       (_)     | |     | |   | |                       | |                   | |            
-        _  __ _| | ___ | |__ | | __ _ _ __   __ _ _ __ | |_ _ __ _   _   ___| | ___  _ __  
-       | |/ _\` | |/ _ \\| '_ \\| |/ _\` | '_ \\ / _\` | '_ \\| __| '__| | | | / __| |/ _ \\| '_ \\ 
-       | | (_| | | (_) | |_) | | (_| | | | | (_| | | | | |_| |  | |_| | \\__ \\ | (_) | | | |
-       | |\\__,_|_|\\___/|_.__/|_|\\__,_|_| |_|\\__, |_| |_|\\__|_|   \\__, | |___/_|\\___/|_| |_|
-      _/ |                                    __/ |                __/ |                     
-     |__/                                    |___/                |___/                      
-                                                                                    v1.0.0
-`;
-    } else {
-        // Original ASCII art for Mac and other platforms
-        banner = `
+    // Use the same ASCII art for all operating systems
+    const banner = `
      ██╗ █████╗ ██╗  ██╗ ██████╗ ██████╗     ██╗      █████╗ ███╗   ██╗ ██████╗████████╗██████╗ ██╗   ██╗
      ██║██╔══██╗██║ ██╔╝██╔═══██╗██╔══██╗    ██║     ██╔══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
      ██║███████║█████╔╝ ██║   ██║██████╔╝    ██║     ███████║██╔██╗ ██║██║  ███╗  ██║   ██████╔╝ ╚████╔╝ 
@@ -125,7 +137,6 @@ function displayBanner() {
  ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   
                                                                                                     v1.0.0
 `;
-    }
     
     appendOutput(banner, 'ascii-art');
 }
@@ -1475,6 +1486,38 @@ function initCLI() {
     if (!cliOutput.contains(inputLine)) {
         cliOutput.appendChild(inputLine);
     }
+    
+    // Auto-focus the terminal input on page load
+    input.focus();
+    
+    // Get the custom cursor element
+    const cursor = inputLine.querySelector('.terminal-cursor');
+    
+    // Function to update cursor position
+    function updateCursorPosition() {
+        // Create a temporary span to measure text width
+        const span = document.createElement('span');
+        span.style.visibility = 'hidden';
+        span.style.position = 'absolute';
+        span.style.whiteSpace = 'pre';
+        span.style.font = window.getComputedStyle(input).font;
+        span.textContent = input.value.substring(0, input.selectionStart);
+        document.body.appendChild(span);
+        
+        // Get the width and update the cursor position
+        const width = span.getBoundingClientRect().width;
+        cursor.style.left = `${width + 4}px`; // 4px is the left margin of the input
+        
+        // Clean up
+        document.body.removeChild(span);
+    }
+    
+    // Update cursor position initially and on input events
+    updateCursorPosition();
+    input.addEventListener('input', updateCursorPosition);
+    input.addEventListener('keydown', () => setTimeout(updateCursorPosition, 0));
+    input.addEventListener('click', updateCursorPosition);
+    input.addEventListener('select', updateCursorPosition);
     
     // Add event listener for handling command input
     input.addEventListener('keypress', (e) => {

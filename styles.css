@@ -174,13 +174,38 @@ body {
     font-size: inherit;
     outline: none;
     margin-left: 4px;
-    width: calc(100% - 200px);
+    width: calc(100% - 20px);
     display: inline-block;
+    caret-color: transparent;
+}
+
+.input-wrapper {
+    position: relative;
+    display: inline-flex;
+    width: calc(100% - 200px);
+}
+
+.terminal-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 18px;
+    background-color: #98c379;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    animation: terminalBlink 1s infinite steps(1);
+}
+
+@keyframes terminalBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 .terminal-input-line {
     display: flex;
     align-items: center;
+    position: relative;
 }
 
 /* Scrollbar Styling */
