@@ -76,7 +76,7 @@ app.listen(PORT, () => {
  * Logs the status of each file copy operation.
  */
 function copyFilesToPublic() {
-  const filesToCopy = ['index.html', 'script.js', 'styles.css', 'IMG_1542.jpeg'];
+  const filesToCopy = ['index.html', 'script.js', 'styles.css'];
   
   filesToCopy.forEach(file => {
     const srcPath = path.join(__dirname, file);
