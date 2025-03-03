@@ -64,6 +64,9 @@ steps:
         gsutil -m cp -r public/styles.css gs://${_BUCKET_NAME}/
         gsutil -m cp -r public/env.js gs://${_BUCKET_NAME}/
         
+        # Remove any old profile image if it exists (to prevent confusion)
+        gsutil -m rm -f gs://${_BUCKET_NAME}/IMG_1542.jpeg || true
+        
         # List bucket contents to verify
         gsutil ls -l gs://${_BUCKET_NAME}/
         
@@ -78,12 +81,23 @@ steps:
     args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.html', 'gs://${_BUCKET_NAME}/**/*.css', 'gs://${_BUCKET_NAME}/**/*.js']
     id: 'set-cache-control'
     waitFor: ['deploy-files']
+    
+  # Step 5b: Force no-cache on images to ensure they update properly
+  - name: 'gcr.io/cloud-builders/gsutil'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Force images to have no-cache to ensure they refresh properly
+        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpg gs://${_BUCKET_NAME}/**/*.jpeg gs://${_BUCKET_NAME}/**/*.png
+    id: 'set-image-cache-control'
+    waitFor: ['set-cache-control']
 
   # Step 6: Set public read access
   - name: 'gcr.io/cloud-builders/gsutil'
     args: ['iam', 'ch', 'allUsers:objectViewer', 'gs://${_BUCKET_NAME}']
     id: 'set-public-access'
-    waitFor: ['set-cache-control']
+    waitFor: ['set-image-cache-control']
 
   # Step 7: Verify deployment and check content types
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -93,6 +107,10 @@ steps:
       - |
         echo "Listing all files in bucket:"
         gsutil ls -L gs://${_BUCKET_NAME}/
+        
+        # Verify the profile image is accessible
+        echo "Verifying profile image is accessible:"
+        gsutil stat gs://jakoblangtry.com/profile.jpeg || echo "Profile image not found in storage"
     id: 'verify-deployment'
     waitFor: ['set-public-access']
 

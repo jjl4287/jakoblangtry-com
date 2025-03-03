@@ -51,6 +51,9 @@ if (isFirstRun) {
   // Inject environment variables
   injectEnvVariables();
   
+  // Check for incorrect image references
+  validateImageReferences();
+  
   // Copy necessary files to public directory
   copyFilesToPublic();
 } else {
@@ -91,4 +94,23 @@ function copyFilesToPublic() {
   });
   
   console.log('All necessary files have been copied to the public directory');
+}
+
+/**
+ * Validates that there are no hard-coded references to the local image file.
+ * Checks HTML files for incorrect image references.
+ */
+function validateImageReferences() {
+  const indexHtmlPath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(indexHtmlPath)) {
+    const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+    
+    // Check for any references to the local image file
+    if (indexHtml.includes('IMG_1542.jpeg') && !indexHtml.includes('storage.googleapis.com')) {
+      console.warn('WARNING: Found references to local image file IMG_1542.jpeg');
+      console.warn('Make sure all image references use: https://storage.googleapis.com/jakoblangtry.com/profile.jpeg?v=3');
+    } else {
+      console.log('Image references validated successfully');
+    }
+  }
 } 
