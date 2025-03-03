@@ -66,8 +66,18 @@ steps:
     waitFor: ['deploy-files']
 
   # Step 6: Set Cache-Control headers for images
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=86400', 'gs://${_BUCKET_NAME}/**/*.jpeg', 'gs://${_BUCKET_NAME}/**/*.jpg', 'gs://${_BUCKET_NAME}/**/*.png', 'gs://${_BUCKET_NAME}/**/*.gif']
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Set cache for jpeg files - this will not fail if no files are found
+        gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.jpeg 2>/dev/null || true
+        
+        # Set cache for jpg, png, gif if they exist (non-failing)
+        gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.jpg 2>/dev/null || true
+        gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.png 2>/dev/null || true
+        gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.gif 2>/dev/null || true
     id: 'set-image-cache-control'
     waitFor: ['deploy-files']
 
