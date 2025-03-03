@@ -67,6 +67,15 @@ steps:
         # Remove any old profile image if it exists (to prevent confusion)
         gsutil -m rm -f gs://${_BUCKET_NAME}/IMG_1542.jpeg || true
         
+        # Copy profile image from IMG_1542.jpeg to the correct location if it exists locally
+        # and if the target doesn't exist yet
+        if [ -f "IMG_1542.jpeg" ]; then
+          echo "Found local profile image, ensuring it's at the correct location..."
+          gsutil stat gs://jakoblangtry.com/profile.jpeg || gsutil cp IMG_1542.jpeg gs://jakoblangtry.com/profile.jpeg
+        else
+          echo "No local profile image found. Please ensure profile.jpeg exists at gs://jakoblangtry.com/"
+        fi
+        
         # List bucket contents to verify
         gsutil ls -l gs://${_BUCKET_NAME}/
         
@@ -89,7 +98,13 @@ steps:
       - '-c'
       - |
         # Force images to have no-cache to ensure they refresh properly
-        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpg gs://${_BUCKET_NAME}/**/*.jpeg gs://${_BUCKET_NAME}/**/*.png
+        # First try with the specific file path if it exists
+        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/profile.jpeg || echo "No profile.jpeg at bucket root"
+        
+        # Then try with wildcards for any other image files, and use || true to prevent errors
+        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpeg || echo "No .jpeg files found"
+        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpg || echo "No .jpg files found"
+        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.png || echo "No .png files found"
     id: 'set-image-cache-control'
     waitFor: ['set-cache-control']
 
@@ -110,7 +125,13 @@ steps:
         
         # Verify the profile image is accessible
         echo "Verifying profile image is accessible:"
-        gsutil stat gs://jakoblangtry.com/profile.jpeg || echo "Profile image not found in storage"
+        
+        # Check both possible locations of the profile image
+        (gsutil stat gs://jakoblangtry.com/profile.jpeg && echo "Profile image found at root!") || \
+        (echo "Profile image not found at root, checking in storage...")
+        
+        # Also remind about the correct URL for the image
+        echo "Remember: the correct URL in HTML should be https://storage.googleapis.com/jakoblangtry.com/profile.jpeg?v=3"
     id: 'verify-deployment'
     waitFor: ['set-public-access']
 
