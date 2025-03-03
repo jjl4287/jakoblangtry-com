@@ -24,99 +24,49 @@ function detectOS() {
 }
 
 // Initialize the terminal interface once the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    cliOutput = document.getElementById('cli-output');
-    displayBanner();
-    displayWelcomeMessage();
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable text selection in terminal
+    enableTextSelection();
     
-    const { inputLine: newInputLine, input } = createInputLine();
-    inputLine = newInputLine;
-    if (!cliOutput.contains(inputLine)) {
-        cliOutput.appendChild(inputLine);
+    // Bio typing animation
+    setupBioTypingAnimation();
+    
+    // Initialize the CLI 
+    initCLI();
+});
+
+// Setup Bio typing animation
+function setupBioTypingAnimation() {
+    // Bio content - customize this with your personal bio
+    const bioText = "Hi, I'm Jakob Langtry. Im a software engineering student at Rochester Institute of Technology. I love to code, I love to learn, and I'd love if you'd check out my projects!";
+    
+    const typedBioElement = document.getElementById('typed-bio');
+    if (!typedBioElement) return; // Safety check
+    
+    let charIndex = 0;
+    
+    function typeText() {
+        if (charIndex < bioText.length) {
+            typedBioElement.textContent += bioText.charAt(charIndex);
+            charIndex++;
+            setTimeout(typeText, Math.random() * 50 + 30); // Random typing speed for realistic effect
+        }
     }
     
-    // Add event listener for handling command input
-    input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            const command = e.target.value.trim();
-            if (command) {
-                commandHistory.push(command);
-                historyIndex = commandHistory.length;
-                currentInputBuffer = '';
-                executeCommand(command);
-                e.target.value = '';
-            }
-        }
-    });
+    // Start typing animation after a short delay
+    setTimeout(typeText, 1000);
+}
 
-    // Add event listener for navigating command history
-    input.addEventListener('keydown', (e) => {
-        switch(e.key) {
-            case 'ArrowUp':
-                e.preventDefault();
-                if (historyIndex === commandHistory.length) {
-                    currentInputBuffer = e.target.value;
-                }
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    e.target.value = commandHistory[historyIndex];
-                }
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                if (historyIndex < commandHistory.length - 1) {
-                    historyIndex++;
-                    e.target.value = commandHistory[historyIndex];
-                } else if (historyIndex === commandHistory.length - 1) {
-                    historyIndex = commandHistory.length;
-                    e.target.value = currentInputBuffer;
-                }
-                break;
-        }
-        // Move cursor to end of input
-        setTimeout(() => {
-            e.target.selectionStart = e.target.selectionEnd = e.target.value.length;
-        }, 0);
-    });
-    
-    // Track mouse selection state
-    document.addEventListener('mousedown', () => {
-        isSelecting = true;
-    });
-    
-    document.addEventListener('mouseup', () => {
-        // Delay setting isSelecting to false to allow for selection to complete
-        setTimeout(() => {
-            isSelecting = false;
-        }, 100);
-    });
-    
-    // Only focus the input if we're not in the middle of selecting text
-    document.addEventListener('click', (e) => {
-        // Check if there's selected text
-        const selection = window.getSelection();
-        
-        // Only focus the input if:
-        // 1. There's no text selected or the selection is empty, AND
-        // 2. We're not in the middle of a selection operation
-        if ((!selection || selection.toString().trim() === '') && !isSelecting) {
-            currentInput.focus();
-        }
-        
-        // If user clicks directly on the input, always focus
-        if (e.target === currentInput) {
-            currentInput.focus();
-        }
-    });
-    
-    // Make the cli-output div selectable by adding these styles
+// Enable text selection in terminal
+function enableTextSelection() {
+    const cliOutput = document.getElementById('cli-output');
     if (cliOutput) {
         cliOutput.style.userSelect = 'text';
         cliOutput.style.webkitUserSelect = 'text';
-        cliOutput.style.MozUserSelect = 'text';
+        cliOutput.style.mozUserSelect = 'text';
         cliOutput.style.msUserSelect = 'text';
     }
-});
+}
 
 /**
  * Creates a new input line for the terminal interface.
@@ -1512,5 +1462,92 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
            ` ${arrow} ${windSpeed} km/h\n` +
            ` ${visibility} km\n` +
            ` ${precipitation}`;
+}
+
+// Initialize CLI functionality
+function initCLI() {
+    cliOutput = document.getElementById('cli-output');
+    displayBanner();
+    displayWelcomeMessage();
+    
+    const { inputLine: newInputLine, input } = createInputLine();
+    inputLine = newInputLine;
+    if (!cliOutput.contains(inputLine)) {
+        cliOutput.appendChild(inputLine);
+    }
+    
+    // Add event listener for handling command input
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const command = e.target.value.trim();
+            if (command) {
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+                currentInputBuffer = '';
+                executeCommand(command);
+                e.target.value = '';
+            }
+        }
+    });
+
+    // Add event listener for navigating command history
+    input.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case 'ArrowUp':
+                e.preventDefault();
+                if (historyIndex === commandHistory.length) {
+                    currentInputBuffer = e.target.value;
+                }
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    e.target.value = commandHistory[historyIndex];
+                }
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    e.target.value = commandHistory[historyIndex];
+                } else if (historyIndex === commandHistory.length - 1) {
+                    historyIndex = commandHistory.length;
+                    e.target.value = currentInputBuffer;
+                }
+                break;
+        }
+        // Move cursor to end of input
+        setTimeout(() => {
+            e.target.selectionStart = e.target.selectionEnd = e.target.value.length;
+        }, 0);
+    });
+    
+    // Track mouse selection state
+    document.addEventListener('mousedown', () => {
+        isSelecting = true;
+    });
+    
+    document.addEventListener('mouseup', () => {
+        // Delay setting isSelecting to false to allow for selection to complete
+        setTimeout(() => {
+            isSelecting = false;
+        }, 100);
+    });
+    
+    // Only focus the input if we're not in the middle of selecting text
+    document.addEventListener('click', (e) => {
+        // Check if there's selected text
+        const selection = window.getSelection();
+        
+        // Only focus the input if:
+        // 1. There's no text selected or the selection is empty, AND
+        // 2. We're not in the middle of a selection operation
+        if ((!selection || selection.toString().trim() === '') && !isSelecting) {
+            currentInput.focus();
+        }
+        
+        // If user clicks directly on the input, always focus
+        if (e.target === currentInput) {
+            currentInput.focus();
+        }
+    });
 }
 
