@@ -76,6 +76,10 @@ steps:
         
         # List bucket contents to verify
         gsutil ls -l gs://${_BUCKET_NAME}/
+        
+        # Set CORS policy on the bucket
+        echo '[{"origin": ["*"],"method": ["GET", "HEAD"],"responseHeader": ["Content-Type", "Content-Length", "Cache-Control"],"maxAgeSeconds": 3600}]' > /tmp/cors.json
+        gsutil cors set /tmp/cors.json gs://${_BUCKET_NAME}
     id: 'deploy-files'
     waitFor: ['inject-api-key']
 
@@ -91,8 +95,8 @@ steps:
     args:
       - '-c'
       - |
-        # Set cache for jpeg files - this will not fail if no files are found
-        gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.jpeg 2>/dev/null || true
+        # Set metadata for JPEG files including content type and cache control
+        gsutil setmeta -h "Content-Type:image/jpeg" -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/IMG_1542.jpeg
         
         # Set cache for jpg, png, gif if they exist (non-failing)
         gsutil -m setmeta -h "Cache-Control:public, max-age=86400" gs://${_BUCKET_NAME}/**/*.jpg 2>/dev/null || true
