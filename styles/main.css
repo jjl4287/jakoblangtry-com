@@ -37,6 +37,36 @@
     @apply inline-block w-2.5 h-[18px] bg-primary absolute left-0 top-1/2 -translate-y-1/2;
     animation: terminalBlink 1s infinite steps(1);
   }
+  
+  .ascii-art {
+    @apply text-primary whitespace-pre font-mono;
+    line-height: 1.2;
+  }
+  
+  .terminal-input-line {
+    @apply flex items-center relative;
+  }
+  
+  .prompt {
+    @apply text-primary mr-2;
+  }
+  
+  .input-wrapper {
+    @apply relative flex-1;
+  }
+  
+  #cli-input {
+    @apply bg-transparent border-none outline-none text-primary w-full p-0 m-0;
+    caret-color: transparent;
+  }
+  
+  .info-text {
+    @apply text-primary;
+  }
+  
+  .error-text {
+    @apply text-red-500;
+  }
 }
 
 @keyframes terminalBlink {

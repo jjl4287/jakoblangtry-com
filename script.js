@@ -127,7 +127,7 @@ function createInputLine() {
  * Displays the ASCII art banner based on the operating system.
  */
 function displayBanner() {
-    // Use the same ASCII art for all operating systems
+    // Low-resolution pixel-style banner like in the screenshot
     const banner = `
      ██╗ █████╗ ██╗  ██╗ ██████╗ ██████╗     ██╗      █████╗ ███╗   ██╗ ██████╗████████╗██████╗ ██╗   ██╗
      ██║██╔══██╗██║ ██╔╝██╔═══██╗██╔══██╗    ██║     ██╔══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
