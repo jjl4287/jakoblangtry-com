@@ -69,17 +69,28 @@ app.get('*', (req, res) => {
 });
 
 // Start the server and listen on the specified port
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Running in ${isProduction ? 'production' : 'development'} mode`);
-});
+const startServer = (port) => {
+  const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+    console.log(`Running in ${isProduction ? 'production' : 'development'} mode`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is already in use, trying ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+};
+
+startServer(PORT);
 
 /**
  * Copies necessary files to the public directory.
  * Logs the status of each file copy operation.
  */
 function copyFilesToPublic() {
-  const filesToCopy = ['index.html', 'script.js', 'styles.css'];
+  const filesToCopy = ['index.html', 'script.js', '404.html'];
   
   filesToCopy.forEach(file => {
     const srcPath = path.join(__dirname, file);
@@ -92,6 +103,13 @@ function copyFilesToPublic() {
       console.warn(`Warning: ${file} not found in source directory`);
     }
   });
+
+  // Ensure styles directory exists in public
+  const publicStylesDir = path.join(__dirname, 'public', 'styles');
+  if (!fs.existsSync(publicStylesDir)) {
+    fs.mkdirSync(publicStylesDir, { recursive: true });
+    console.log('Created public/styles directory');
+  }
   
   console.log('All necessary files have been copied to the public directory');
 }

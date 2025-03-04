@@ -10,7 +10,7 @@ steps:
         pnpm install
     id: 'setup-dependencies'
 
-  # Step 2: Set NODE_ENV to production for build
+  # Step 2: Build Tailwind CSS and prepare files for deployment
   - name: 'node:18'
     entrypoint: 'bash'
     args:
@@ -19,11 +19,13 @@ steps:
         npm install -g pnpm
         export NODE_ENV=production
         # Ensure public directory exists
-        mkdir -p public
+        mkdir -p public/styles
+        # Build Tailwind CSS
+        pnpm run build
         # Copy necessary files to public
         cp index.html public/
         cp script.js public/
-        cp styles.css public/
+        cp 404.html public/
         # Start server briefly to generate env.js
         pnpm start &
         sleep 5
@@ -63,6 +65,10 @@ steps:
         gsutil -m cp -r public/script.js gs://${_BUCKET_NAME}/
         gsutil -m cp -r public/styles.css gs://${_BUCKET_NAME}/
         gsutil -m cp -r public/env.js gs://${_BUCKET_NAME}/
+        gsutil -m cp -r public/404.html gs://${_BUCKET_NAME}/
+        
+        # Create styles directory if it doesn't exist
+        gsutil ls gs://${_BUCKET_NAME}/styles/ || gsutil mb gs://${_BUCKET_NAME}/styles/
         
         # Remove any old profile image if it exists (to prevent confusion)
         gsutil -m rm -f gs://${_BUCKET_NAME}/IMG_1542.jpeg || true
