@@ -8,7 +8,7 @@
 
 body {
     background-color: #2c0922;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', 'Lucida Console', monospace;
     height: 100vh;
     margin: 0;
     padding: 0;
@@ -140,8 +140,9 @@ body {
     50% { opacity: 0; }
 }
 
+/* Make terminal take full left side */
 .terminal {
-    flex: 1;
+    flex: 1; /* Takes up all available space */
     background-color: rgba(0, 0, 0, 0.9);
     padding: 16px;
     display: flex;
@@ -150,6 +151,11 @@ body {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+    cursor: text; /* Indicates the area is text-editable */
+    position: relative; /* For proper click handling */
+    width: 100%; /* Ensure it takes full width */
+    height: 100%; /* Ensure it takes full height */
+    min-width: 0; /* Allows flex child to shrink below content size if needed */
 }
 
 .terminal-output {
@@ -177,6 +183,8 @@ body {
     width: calc(100% - 20px);
     display: inline-block;
     caret-color: transparent;
+    position: relative;
+    z-index: 1;
 }
 
 .input-wrapper {
@@ -229,31 +237,23 @@ body {
 /* ASCII art and command output styling */
 .ascii-art {
     white-space: pre;
-    line-height: 1.0;
-    margin-bottom: 16px;
-    font-family: 'JetBrains Mono', monospace;
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
+    padding: 10px 0;
+    color: #98c379;
+    line-height: 1.2;
+    overflow-x: auto;
+    max-width: 100%;
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', 'Lucida Console', monospace;
 }
 
 .command-output {
-    margin-bottom: 12px;
-    line-height: 1.0;
-    color: #abb2bf;
-    white-space: pre;
-    font-family: 'JetBrains Mono', monospace;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', 'Lucida Console', monospace;
+    line-height: 1.4;
     font-size: 14px;
-    padding: 8px;
-    overflow-x: auto;
-    max-width: 100%;
-    word-wrap: normal;
-    overflow-wrap: normal;
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
+    color: #e5c07b;
 }
 
 .info-text {

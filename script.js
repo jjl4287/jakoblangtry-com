@@ -5,6 +5,7 @@ let inputLine;
 let commandHistory = [];
 let historyIndex = -1;
 let currentInputBuffer = '';
+let cursor; // Global cursor element
 
 // Check if text is currently being selected
 let isSelecting = false;
@@ -35,16 +36,64 @@ document.addEventListener('DOMContentLoaded', function() {
     initCLI();
     
     // Ensure terminal input is focused on page load and when window gains focus
-    setTimeout(() => {
+    function focusTerminalInput() {
         if (currentInput) {
             currentInput.focus();
+            // Position cursor at the end
+            const length = currentInput.value.length;
+            currentInput.setSelectionRange(length, length);
+            // If we have an updateCursorPosition function defined, call it
+            if (typeof updateCursorPosition === 'function') {
+                updateCursorPosition();
+            }
         }
-    }, 100);
+    }
+    
+    // Focus terminal on load with a small delay to ensure everything is rendered
+    setTimeout(focusTerminalInput, 100);
     
     // Refocus the terminal when the window gets focus
-    window.addEventListener('focus', () => {
-        if (currentInput) {
+    window.addEventListener('focus', focusTerminalInput);
+    
+    // Handle clicks outside the terminal - ensure they don't steal focus
+    document.addEventListener('click', function(e) {
+        // If the click target is not within the terminal or a child of it
+        const terminal = document.querySelector('.terminal');
+        if (!terminal.contains(e.target) && e.target !== terminal) {
+            // Don't do anything special
+        } else {
+            // Click was in the terminal, focus the input after a small delay
+            // This ensures even accidental clicks will focus the terminal
+            setTimeout(focusTerminalInput, 10);
+        }
+    });
+    
+    // Add a document-level click handler to focus terminal input when clicking anywhere in the terminal
+    document.addEventListener('click', function(e) {
+        // Don't do anything if we're loading or don't have the elements ready
+        if (!currentInput || !document.querySelector('.terminal')) return;
+        
+        const terminal = document.querySelector('.terminal');
+        
+        // Check if the click target is within the terminal
+        if (terminal.contains(e.target)) {
+            // Don't focus for clicks on links
+            if (e.target.tagName === 'A') return;
+            
+            // Don't focus if user is selecting text
+            if (window.getSelection().toString().length > 0) return;
+            
+            // Otherwise, focus the input field
             currentInput.focus();
+            
+            // Position cursor at the end of input
+            const length = currentInput.value.length;
+            currentInput.setSelectionRange(length, length);
+            
+            // Trigger any cursor update function
+            if (typeof updateCursorPosition === 'function') {
+                updateCursorPosition();
+            }
         }
     });
 });
@@ -199,15 +248,23 @@ function executeCommand(command) {
     const normalizedCommand = command.toLowerCase();
     switch (normalizedCommand) {
         case 'help':
-            appendOutput('Available commands: help, whoami, date, echo, repo, clear, email, weather, exit, curl, banner, resume, projects', 'info-text');
+            appendOutput('Available commands: help, projects, resume, whoami, date, echo, github, clear, email, weather, exit, banner', 'info-text');
             break;
         case 'clear':
             cliOutput.innerHTML = '';
             displayBanner();
+            // Re-create the input line after clearing
+            const { inputLine: newInputLine, input: newInput } = createInputLine();
+            inputLine = newInputLine;
             cliOutput.appendChild(inputLine);
+            currentInput = newInput;
+            currentInput.focus();
             break;
         case 'whoami':
-            appendOutput('guest');
+            appendOutput(`Jakob Langtry - Software Engineering Student at Rochester Institute of Technology.
+Passionate about web development, backend systems, and creating useful applications.
+Currently seeking opportunities in software engineering.
+Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
             break;
         case 'date':
             appendOutput(new Date().toLocaleString());
@@ -219,8 +276,8 @@ function executeCommand(command) {
             appendOutput('Opening email client...');
             window.location.href = 'mailto:jjalangtry@gmail.com';
             break;
-        case 'repo':
-            appendOutput('Opening repository...');
+        case 'github':
+            appendOutput('Opening GitHub profile...');
             window.open('https://github.com/jjl4287', '_blank');
             break;
         case 'weather':
@@ -243,13 +300,34 @@ function executeCommand(command) {
             ).join('\n'), 'info-text');
             appendOutput('Click on a project URL or type its name to open it.', 'info-text');
             break;
+        case 'repo':
+            // Alias for github command
+            appendOutput('Opening GitHub profile...');
+            window.open('https://github.com/jjl4287', '_blank');
+            break;
+        case 'converter':
+            appendOutput('Opening Link Converter...');
+            window.open('https://convert.jakoblangtry.com', '_blank');
+            break;
+        case 'curl':
+            appendOutput('Usage: curl [URL]', 'info-text');
+            break;
         default:
             if (normalizedCommand === 'converter') {
                 appendOutput('Opening Link Converter...');
                 window.open('https://convert.jakoblangtry.com', '_blank');
                 break;
             }
-            else if (normalizedCommand.startsWith('weather ')) {
+            else if (normalizedCommand.startsWith('curl ')) {
+                const url = command.substring(5).trim(); // Get everything after "curl "
+                if (url) {
+                    appendOutput(`Simulating curl request to: ${url}`, 'info-text');
+                    appendOutput('Note: This is a simulated response. Actual network requests are not supported in this terminal interface.', 'warning-text');
+                } else {
+                    appendOutput('Error: Please provide a URL', 'error-text');
+                }
+                break;
+            } else if (normalizedCommand.startsWith('weather ')) {
                 const city = command.substring(8).trim(); // Get everything after "weather "
                 
                 // We're now handling the formatting in fetchWeather function
@@ -944,7 +1022,7 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
                 } else if (weather.includes('haze') || description.includes('hazy')) {
                     art = "     \\   /   \n" +
                          "      .-.     \n" +
-                         "   -- (   ) --\n" +
+                         "   –– (   ) ––\n" +
                          "      `-'     \n" +
                          "     /   \\    ";
                 } else if (weather.includes('sun') || description.includes('sunny')) {
@@ -1285,13 +1363,13 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
         } else if (weather.includes('haze') || description.includes('hazy')) {
             ascii = "     \\   /   \n" +
                    "      .-.     \n" +
-                   "   -- (   ) --\n" +
+                   "   –– (   ) ––\n" +
                    "      `-'     \n" +
                    "     /   \\    ";
         } else if (weather.includes('sun') || description.includes('sunny')) {
             ascii = "    \\   /    \n" +
                    "     .-.     \n" +
-                   "  -- (   ) --\n" +
+                   "  ── (   ) ──\n" +
                    "     `-'     \n" +
                    "    /   \\    ";
         } else if (description.includes('patchy')) {
@@ -1404,8 +1482,8 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
             // Default fallback
             ascii = "    \\   /    \n" +
                    "     .-.     \n" +
-                   "  ── (   ) ──\n" +
-                   "      `-'     \n" +
+                   "  -- (   ) --\n" +
+                   "     `-'     \n" +
                    "    /   \\    ";
         }
     }
@@ -1490,25 +1568,77 @@ function initCLI() {
     // Auto-focus the terminal input on page load
     input.focus();
     
-    // Get the custom cursor element
-    const cursor = inputLine.querySelector('.terminal-cursor');
+    // Get the custom cursor element and set it to the global variable
+    cursor = inputLine.querySelector('.terminal-cursor');
+    
+    // Get the terminal element
+    const terminal = document.querySelector('.terminal');
+    
+    // Better text selection handling
+    let mouseDownTarget = null;
+    let hasMovedMouse = false;
+    
+    // Track mousedown to determine if user is starting text selection
+    terminal.addEventListener('mousedown', function(e) {
+        mouseDownTarget = e.target;
+        hasMovedMouse = false;
+    });
+    
+    // Track mouse movement to detect selection
+    terminal.addEventListener('mousemove', function(e) {
+        if (e.buttons === 1) { // Left mouse button is pressed
+            hasMovedMouse = true;
+        }
+    });
+    
+    // Handle click on terminal - focus input unless user was selecting text
+    terminal.addEventListener('click', function(e) {
+        // Don't handle clicks on links
+        if (e.target.tagName === 'A') {
+            return;
+        }
+
+        // Check if user was selecting text (had mouse down and moved before releasing)
+        if (hasMovedMouse && window.getSelection().toString().length > 0) {
+            // User was selecting text, don't focus input
+            return;
+        }
+        
+        // Get the current selection
+        const selection = window.getSelection();
+        
+        // Don't focus if user is selecting text
+        if (selection.type === 'Range' && selection.toString().length > 0) {
+            return;
+        }
+        
+        // Otherwise, focus the input field
+        input.focus();
+        
+        // Position cursor at the end of input
+        const length = input.value.length;
+        input.setSelectionRange(length, length);
+        updateCursorPosition();
+    });
     
     // Function to update cursor position
     function updateCursorPosition() {
+        if (!currentInput || !cursor) return;
+        
         // Create a temporary span to measure text width
         const span = document.createElement('span');
         span.style.visibility = 'hidden';
         span.style.position = 'absolute';
         span.style.whiteSpace = 'pre';
-        span.style.font = window.getComputedStyle(input).font;
-        span.textContent = input.value.substring(0, input.selectionStart);
+        span.style.font = window.getComputedStyle(currentInput).font;
+        span.textContent = currentInput.value.substring(0, currentInput.selectionStart);
         document.body.appendChild(span);
         
         // Get the width and update the cursor position
         const width = span.getBoundingClientRect().width;
         cursor.style.left = `${width + 4}px`; // 4px is the left margin of the input
         
-        // Clean up
+        // Clean up the span
         document.body.removeChild(span);
     }
     
