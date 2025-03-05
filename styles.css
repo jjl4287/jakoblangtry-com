@@ -336,6 +336,38 @@ body.mobile-device .weather-container {
     word-wrap: break-word;
 }
 
+.command-text {
+    color: #d19a66;
+    font-weight: bold;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.log-text {
+    color: #abb2bf;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'JetBrains Mono', Consolas, 'Courier New', 'Lucida Console', monospace;
+}
+
+.warning-text {
+    color: #e5c07b;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
 /* Fixed-width container for weather output to prevent responsive layout changes */
 .weather-container {
     display: inline-block;

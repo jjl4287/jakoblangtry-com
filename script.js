@@ -435,13 +435,14 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
                 break;
             }
             else if (normalizedCommand.startsWith('curl ')) {
-                const url = command.substring(5).trim(); // Get everything after "curl "
-                if (url) {
-                    appendOutput(`Simulating curl request to: ${url}`, 'info-text');
-                    appendOutput('Note: This is a simulated response. Actual network requests are not supported in this terminal interface.', 'warning-text');
-                } else {
+                const args = parseCurlCommand(command.substring(5).trim());
+                
+                if (!args.url) {
                     appendOutput('Error: Please provide a URL', 'error-text');
+                    break;
                 }
+                
+                executeCurlCommand(args);
                 break;
             } else if (normalizedCommand.startsWith('weather ')) {
                 const city = command.substring(8).trim(); // Get everything after "weather "
@@ -490,10 +491,14 @@ function displayCommandHelp(command) {
             notes: 'This project was created by Jakob to help convert links between different formats.'
         },
         curl: {
-            desc: 'Simulate HTTP requests (for educational purposes only).',
-            usage: 'curl [URL]',
-            examples: ['curl https://example.com', 'curl https://api.example.org/data'],
-            notes: 'This is a simulated version of curl. It doesn\'t actually make network requests.'
+            desc: 'Make HTTP requests to web servers, APIs, and other web resources.',
+            usage: 'curl [options] [URL]',
+            examples: [
+                'curl https://example.com', 
+                'curl -I https://api.example.org/data',
+                'curl -X POST -H "Content-Type: application/json" -d \'{"key":"value"}\' https://api.example.org/data'
+            ],
+            notes: 'Supports common curl options like -X (method), -H (headers), -d (data), -I (head), -o (output), -v (verbose).'
         },
         date: {
             desc: 'Display the current date and time based on your local timezone.',
@@ -2036,5 +2041,215 @@ function initCLI() {
             currentInput.focus();
         }
     });
+}
+
+/**
+ * Parses a curl command string into a structured object with options and URL.
+ * @param {string} cmdString - The curl command string to parse (without the 'curl' part)
+ * @returns {Object} - Parsed command with options and URL
+ */
+function parseCurlCommand(cmdString) {
+    const result = {
+        url: '',
+        method: 'GET',
+        headers: {},
+        data: null,
+        headOnly: false,
+        verbose: false,
+        outputFile: null
+    };
+    
+    // Simple regex-based parser for curl arguments
+    // This is a simplified version that handles the most common cases
+    let inQuotes = false;
+    let currentQuote = '';
+    let tokens = [];
+    let current = '';
+    
+    // Tokenize the command string
+    for (let i = 0; i < cmdString.length; i++) {
+        const char = cmdString[i];
+        
+        if ((char === '"' || char === "'") && (i === 0 || cmdString[i-1] !== '\\')) {
+            if (inQuotes && currentQuote === char) {
+                // End of quoted string
+                inQuotes = false;
+                currentQuote = '';
+                tokens.push(current);
+                current = '';
+            } else if (!inQuotes) {
+                // Start of quoted string
+                inQuotes = true;
+                currentQuote = char;
+                if (current) {
+                    tokens.push(current);
+                    current = '';
+                }
+            } else {
+                // Different quote inside a quoted string
+                current += char;
+            }
+        } else if (char === ' ' && !inQuotes) {
+            if (current) {
+                tokens.push(current);
+                current = '';
+            }
+        } else {
+            current += char;
+        }
+    }
+    
+    if (current) {
+        tokens.push(current);
+    }
+    
+    // Parse tokens into options and URL
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        
+        if (token.startsWith('-')) {
+            // Handle options
+            switch (token) {
+                case '-X':
+                    if (i + 1 < tokens.length) {
+                        result.method = tokens[++i];
+                    }
+                    break;
+                case '-H':
+                    if (i + 1 < tokens.length) {
+                        const header = tokens[++i];
+                        const separatorIndex = header.indexOf(':');
+                        if (separatorIndex > 0) {
+                            const name = header.substring(0, separatorIndex).trim();
+                            const value = header.substring(separatorIndex + 1).trim();
+                            result.headers[name] = value;
+                        }
+                    }
+                    break;
+                case '-d':
+                    if (i + 1 < tokens.length) {
+                        result.data = tokens[++i];
+                        // If method is still GET, change it to POST
+                        if (result.method === 'GET') {
+                            result.method = 'POST';
+                        }
+                    }
+                    break;
+                case '-I':
+                    result.headOnly = true;
+                    result.method = 'HEAD';
+                    break;
+                case '-v':
+                    result.verbose = true;
+                    break;
+                case '-o':
+                    if (i + 1 < tokens.length) {
+                        result.outputFile = tokens[++i];
+                    }
+                    break;
+                // Handle combined short options like -Iv
+                default:
+                    if (token.startsWith('-') && token.length > 1 && !token.startsWith('--')) {
+                        for (let j = 1; j < token.length; j++) {
+                            const option = token[j];
+                            if (option === 'I') {
+                                result.headOnly = true;
+                                result.method = 'HEAD';
+                            } else if (option === 'v') {
+                                result.verbose = true;
+                            }
+                        }
+                    }
+                    break;
+            }
+        } else if (!result.url) {
+            // First non-option is the URL
+            result.url = token;
+        }
+    }
+    
+    return result;
+}
+
+/**
+ * Executes a curl command with the specified arguments.
+ * @param {Object} args - The parsed curl command arguments
+ */
+async function executeCurlCommand(args) {
+    try {
+        appendOutput(`curl ${args.url}`, 'command-text');
+        
+        // If verbose mode is enabled, show request details
+        if (args.verbose) {
+            appendOutput('> Verbose mode enabled', 'info-text');
+            appendOutput(`> Request Method: ${args.method}`, 'info-text');
+            if (Object.keys(args.headers).length > 0) {
+                appendOutput('> Request Headers:', 'info-text');
+                for (const [name, value] of Object.entries(args.headers)) {
+                    appendOutput(`>   ${name}: ${value}`, 'info-text');
+                }
+            }
+            if (args.data) {
+                appendOutput('> Request Body:', 'info-text');
+                appendOutput(`>   ${args.data}`, 'info-text');
+            }
+        }
+        
+        // Prepare fetch options
+        const fetchOptions = {
+            method: args.method,
+            headers: args.headers
+        };
+        
+        // Add body for methods that support it
+        if (args.data && ['POST', 'PUT', 'PATCH'].includes(args.method.toUpperCase())) {
+            fetchOptions.body = args.data;
+        }
+        
+        // Show a pending message
+        appendOutput(`Making ${args.method} request to ${args.url}...`, 'info-text');
+        
+        // Execute the fetch request
+        const response = await fetch(args.url, fetchOptions);
+        
+        // Display response status
+        const statusLine = `HTTP/${response.status} ${response.statusText}`;
+        appendOutput(statusLine, response.ok ? 'success-text' : 'error-text');
+        
+        // Display response headers if verbose or HEAD request
+        if (args.verbose || args.headOnly) {
+            appendOutput('Response Headers:', 'info-text');
+            for (const [name, value] of response.headers.entries()) {
+                appendOutput(`${name}: ${value}`, 'log-text');
+            }
+        }
+        
+        // Get and display response body if not a HEAD request
+        if (!args.headOnly) {
+            // Try to get response as text
+            const text = await response.text();
+            
+            // If it looks like JSON, try to format it
+            if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+                try {
+                    const json = JSON.parse(text);
+                    appendOutput(JSON.stringify(json, null, 2), 'log-text');
+                } catch (e) {
+                    // If parsing fails, just show as text
+                    appendOutput(text, 'log-text');
+                }
+            } else {
+                // For non-JSON responses
+                appendOutput(text, 'log-text');
+            }
+        }
+        
+        // Handle output to file if specified (simulated)
+        if (args.outputFile) {
+            appendOutput(`Note: In this web environment, data cannot be saved to '${args.outputFile}'. This would work in a real terminal.`, 'warning-text');
+        }
+    } catch (error) {
+        appendOutput(`curl: (1) ${error.message}`, 'error-text');
+    }
 }
 
