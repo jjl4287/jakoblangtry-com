@@ -311,6 +311,9 @@ body.mobile-device .weather-container {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.4;
 }
 
 .error-text {
@@ -319,6 +322,8 @@ body.mobile-device .weather-container {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .success-text {
@@ -327,6 +332,8 @@ body.mobile-device .weather-container {
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 /* Fixed-width container for weather output to prevent responsive layout changes */

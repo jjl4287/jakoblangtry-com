@@ -252,7 +252,15 @@ function appendOutput(text, className = '') {
     // Create and append the new output
     const output = document.createElement('div');
     output.className = className;
-    output.textContent = text;
+    
+    // For help text with multiple lines, preserve exact formatting
+    if (className === 'info-text' && text.includes('\n')) {
+        // Use textContent to preserve newlines
+        output.textContent = text;
+    } else {
+        // For normal text, consider replacing newlines with breaks if needed
+        output.textContent = text;
+    }
     
     if (inputLine && inputLine.parentNode === cliOutput) {
         cliOutput.insertBefore(output, inputLine);
@@ -285,7 +293,63 @@ function executeCommand(command) {
     const normalizedCommand = command.toLowerCase();
     switch (normalizedCommand) {
         case 'help':
-            appendOutput('Available commands: help, projects, resume, whoami, date, echo, github, clear, email, weather, exit, banner', 'info-text');
+            const helpText = `
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                      JAKOB LANGTRY TERMINAL - HELP                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+AVAILABLE COMMANDS:
+
+  banner     Display the terminal banner
+             Usage: banner
+
+  clear      Clear the terminal screen
+             Usage: clear
+
+  converter  Open Link Converter tool
+             Usage: converter
+
+  curl       Simulate HTTP requests (educational purposes only)
+             Usage: curl [URL]
+
+  date       Display the current date and time
+             Usage: date
+
+  echo       Display a line of text
+             Usage: echo [text]
+
+  email      Open email client to contact Jakob
+             Usage: email
+
+  exit       Close the terminal session
+             Usage: exit
+
+  github     Open Jakob's GitHub profile
+             (alias: repo)
+             Usage: github
+
+  help       Display this help information
+             Usage: help
+
+  projects   List available projects with URLs
+             Usage: projects
+
+  resume     View Jakob's resume
+             Usage: resume
+
+  weather    Display weather forecast for a location
+             Usage: weather [city or location]
+             Examples: weather New York
+                      weather Syracuse NY
+                      weather London, UK
+
+  whoami     Display information about Jakob
+             Usage: whoami
+
+For more information about a specific command, type: [command] --help`;
+            
+            // Create a div with pre-formatted text for help output
+            appendOutput(helpText, 'info-text');
             break;
         case 'clear':
             // Save the command history
@@ -391,9 +455,137 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
                 } else {
                     appendOutput('Usage: echo [text to display]', 'info-text');
                 }
+            } else if (normalizedCommand.endsWith(' --help')) {
+                // Handle command-specific help
+                const cmd = normalizedCommand.substring(0, normalizedCommand.length - 7).trim();
+                displayCommandHelp(cmd);
             } else {
                 appendOutput(`Command not found: ${command}. Type 'help' for available commands.`, 'error-text');
             }
+    }
+}
+
+/**
+ * Displays detailed help for a specific command
+ * @param {string} command - The command to display help for
+ */
+function displayCommandHelp(command) {
+    const helpDetails = {
+        banner: {
+            desc: 'Display the ASCII art banner for the terminal.',
+            usage: 'banner',
+            examples: ['banner'],
+            notes: 'The banner is automatically displayed when the terminal starts or when the screen is cleared.'
+        },
+        clear: {
+            desc: 'Clear the terminal screen, preserving command history.',
+            usage: 'clear',
+            examples: ['clear'],
+            notes: 'This command preserves your command history, so you can still use up/down arrows to access previous commands.'
+        },
+        converter: {
+            desc: 'Open the Link Converter tool in a new browser tab.',
+            usage: 'converter',
+            examples: ['converter'],
+            notes: 'This project was created by Jakob to help convert links between different formats.'
+        },
+        curl: {
+            desc: 'Simulate HTTP requests (for educational purposes only).',
+            usage: 'curl [URL]',
+            examples: ['curl https://example.com', 'curl https://api.example.org/data'],
+            notes: 'This is a simulated version of curl. It doesn\'t actually make network requests.'
+        },
+        date: {
+            desc: 'Display the current date and time based on your local timezone.',
+            usage: 'date',
+            examples: ['date'],
+            notes: 'The date format follows your browser\'s locale settings.'
+        },
+        echo: {
+            desc: 'Display a line of text in the terminal.',
+            usage: 'echo [text]',
+            examples: ['echo Hello, World!', 'echo This is a test'],
+            notes: 'If no text is provided, usage information will be displayed.'
+        },
+        email: {
+            desc: 'Open your default email client to contact Jakob.',
+            usage: 'email',
+            examples: ['email'],
+            notes: 'This will open your system\'s default email client with jjalangtry@gmail.com as the recipient.'
+        },
+        exit: {
+            desc: 'Close the terminal session and browser tab.',
+            usage: 'exit',
+            examples: ['exit'],
+            notes: 'This command attempts to close the current browser tab. Browser security settings may prevent this on some browsers.'
+        },
+        github: {
+            desc: 'Open Jakob\'s GitHub profile in a new browser tab.',
+            usage: 'github',
+            examples: ['github', 'repo'],
+            notes: 'The command "repo" is an alias for "github" and performs the same action.'
+        },
+        help: {
+            desc: 'Display a list of available commands with brief descriptions.',
+            usage: 'help',
+            examples: ['help', 'command --help'],
+            notes: 'For detailed help on a specific command, type the command name followed by --help.'
+        },
+        projects: {
+            desc: 'List available projects with URLs.',
+            usage: 'projects',
+            examples: ['projects'],
+            notes: 'You can click on the displayed URLs or type the project name (e.g., "converter") to open it.'
+        },
+        repo: {
+            desc: 'Alias for the "github" command. Opens Jakob\'s GitHub profile.',
+            usage: 'repo',
+            examples: ['repo', 'github'],
+            notes: 'This is just an alternative way to access the github command.'
+        },
+        resume: {
+            desc: 'View Jakob\'s resume in a new browser tab.',
+            usage: 'resume',
+            examples: ['resume'],
+            notes: 'This opens a PDF file with Jakob\'s most recent resume.'
+        },
+        weather: {
+            desc: 'Display weather forecast for a specified location.',
+            usage: 'weather [city or location]',
+            examples: ['weather New York', 'weather Syracuse NY', 'weather London, UK', 'weather Paris France'],
+            notes: 'Weather data is retrieved in real-time. The display format will adapt based on your device type.'
+        },
+        whoami: {
+            desc: 'Display information about Jakob Langtry.',
+            usage: 'whoami',
+            examples: ['whoami'],
+            notes: 'This provides a brief biography and professional information about Jakob.'
+        }
+    };
+
+    if (helpDetails[command]) {
+        const help = helpDetails[command];
+        let helpText = `
+╔══════════════════════════════════════════════════════════════════╗
+║ COMMAND: ${command.padEnd(52)}║
+╚══════════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+  ${help.desc}
+
+USAGE:
+  ${help.usage}
+
+EXAMPLES:
+  ${help.examples.join('\n  ')}
+
+NOTES:
+  ${help.notes}
+`;
+        // Ensure the helpText preserves newlines
+        appendOutput(helpText, 'info-text');
+    } else {
+        appendOutput(`No detailed help available for '${command}'. Type 'help' to see all available commands.`, 'error-text');
     }
 }
 
