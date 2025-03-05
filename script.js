@@ -6,6 +6,7 @@ let commandHistory = [];
 let historyIndex = -1;
 let currentInputBuffer = '';
 let cursor; // Global cursor element
+let isMobileDevice = false; // Flag to track if we're on a mobile device
 
 // Check if text is currently being selected
 let isSelecting = false;
@@ -24,8 +25,33 @@ function detectOS() {
     return 'unknown';
 }
 
+// Function to check if the device is mobile using userAgent as a fallback
+function isMobile() {
+    // First try using detectOS to check if it's iOS or Android
+    const os = detectOS();
+    if (os === 'android' || os === 'ios') return true;
+    
+    // Fallback to user agent check for devices that may not report platform correctly
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+}
+
 // Initialize the terminal interface once the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on a mobile device
+    isMobileDevice = isMobile();
+    
+    // Add a class to the body for mobile-specific styling
+    if (isMobileDevice) {
+        document.body.classList.add('mobile-device');
+    }
+    
+    // Check if on Windows to apply monospace font
+    const os = detectOS();
+    if (os === 'windows') {
+        document.body.classList.add('windows-device');
+    }
+    
     // Enable text selection in terminal
     enableTextSelection();
     
@@ -176,8 +202,8 @@ function createInputLine() {
  * Displays the ASCII art banner based on the operating system.
  */
 function displayBanner() {
-    // Use the same ASCII art for all operating systems
-    const banner = `
+    // Full ASCII art banner for desktop
+    const desktopBanner = `
      ██╗ █████╗ ██╗  ██╗ ██████╗ ██████╗     ██╗      █████╗ ███╗   ██╗ ██████╗████████╗██████╗ ██╗   ██╗
      ██║██╔══██╗██║ ██╔╝██╔═══██╗██╔══██╗    ██║     ██╔══██╗████╗  ██║██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
      ██║███████║█████╔╝ ██║   ██║██████╔╝    ██║     ███████║██╔██╗ ██║██║  ███╗  ██║   ██████╔╝ ╚████╔╝ 
@@ -186,6 +212,17 @@ function displayBanner() {
  ╚════╝ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝  ╚═╝   ╚═╝   
                                                                                                     v1.0.0
 `;
+
+    // Simplified banner for mobile devices
+    const mobileBanner = `
+ ╔═══════════════════╗
+ ║  JAKOB LANGTRY    ║
+ ║  Terminal v1.0.0  ║
+ ╚═══════════════════╝
+`;
+
+    // Choose the appropriate banner based on device type
+    const banner = isMobileDevice ? mobileBanner : desktopBanner;
     
     appendOutput(banner, 'ascii-art');
 }
@@ -251,13 +288,25 @@ function executeCommand(command) {
             appendOutput('Available commands: help, projects, resume, whoami, date, echo, github, clear, email, weather, exit, banner', 'info-text');
             break;
         case 'clear':
-            cliOutput.innerHTML = '';
+            // Save the command history
+            const savedHistory = commandHistory;
+            const savedHistoryIndex = historyIndex;
+            const savedCurrentInputBuffer = currentInputBuffer;
+            
+            // Clear the output container but maintain the input line
+            while (cliOutput.firstChild !== inputLine) {
+                cliOutput.removeChild(cliOutput.firstChild);
+            }
+            
+            // Display the banner
             displayBanner();
-            // Re-create the input line after clearing
-            const { inputLine: newInputLine, input: newInput } = createInputLine();
-            inputLine = newInputLine;
-            cliOutput.appendChild(inputLine);
-            currentInput = newInput;
+            
+            // Restore the command history
+            commandHistory = savedHistory;
+            historyIndex = savedHistoryIndex;
+            currentInputBuffer = savedCurrentInputBuffer;
+            
+            // Keep focus on the current input
             currentInput.focus();
             break;
         case 'whoami':
@@ -279,6 +328,9 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
         case 'github':
             appendOutput('Opening GitHub profile...');
             window.open('https://github.com/jjl4287', '_blank');
+            break;
+        case 'echo':
+            appendOutput('Usage: echo [text to display]\nDisplays the text provided as an argument.', 'info-text');
             break;
         case 'weather':
             appendOutput('Usage: weather [city or location]. Examples:\n  weather New York\n  weather Syracuse NY\n  weather London, UK\n  weather Paris France', 'info-text');
@@ -333,7 +385,12 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
                 // We're now handling the formatting in fetchWeather function
                 fetchWeather(city);
             } else if (normalizedCommand.startsWith('echo ')) {
-                appendOutput(command.substring(5));
+                const echoText = command.substring(5).trim();
+                if (echoText) {
+                    appendOutput(echoText);
+                } else {
+                    appendOutput('Usage: echo [text to display]', 'info-text');
+                }
             } else {
                 appendOutput(`Command not found: ${command}. Type 'help' for available commands.`, 'error-text');
             }
@@ -802,11 +859,79 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
         }
     });
     
-    // Get current weather (first item in the list)
-    const currentWeather = forecasts[0];
+    // Location string construction
+    let locationStr = city;
+    if (state) locationStr += `, ${state}`;
+    if (country && country !== 'Simulation') locationStr += `, ${country}`;
+    
+    // Display header
+    appendWeatherOutput(`Weather Forecast for ${locationStr}`);
+    appendWeatherOutput(`Location: ${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`);
+    appendWeatherOutput('');
+
+    // Choose between mobile and desktop display formats
+    if (isMobileDevice) {
+        // Simplified mobile-friendly weather display
+        displayMobileWeatherReport(days);
+    } else {
+        // Full fancy ASCII art weather display for desktop
+        displayDesktopWeatherReport(days);
+    }
+}
+
+/**
+ * Simplified weather display format for mobile devices
+ * @param {Object} days - Weather data grouped by days
+ */
+function displayMobileWeatherReport(days) {
+    // Iterate through each day
+    Object.keys(days).forEach(dayStr => {
+        const day = days[dayStr];
+        
+        // Display day header
+        appendWeatherOutput(`\n[${dayStr}]`, 'weather-day-header');
+        
+        // Display each time period with simplified formatting
+        ['morning', 'noon', 'evening', 'night'].forEach(period => {
+            if (day[period]) {
+                const forecast = day[period];
+                const time = new Date(forecast.dt * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const temp = Math.round(forecast.main.temp);
+                const condition = forecast.weather[0].main;
+                const description = forecast.weather[0].description;
+                
+                // Simple symbols for weather conditions
+                let symbol = '☁️'; // default cloudy
+                if (condition === 'Clear') symbol = '☀️';
+                if (condition === 'Rain') symbol = '🌧️';
+                if (condition === 'Snow') symbol = '❄️';
+                if (condition === 'Thunderstorm') symbol = '⚡';
+                if (condition === 'Drizzle') symbol = '🌦️';
+                if (condition === 'Mist' || condition === 'Fog') symbol = '🌫️';
+                
+                appendWeatherOutput(`${symbol} ${period.charAt(0).toUpperCase() + period.slice(1)} (${time}): ${temp}°F, ${description}`);
+            }
+        });
+    });
+}
+
+/**
+ * Full featured weather display for desktop devices
+ * @param {Object} days - Weather data grouped by days
+ */
+function displayDesktopWeatherReport(days) {
+    // Get current weather (first item in the list is assumed to be current)
+    const forecasts = [];
+    Object.values(days).forEach(dayPeriods => {
+        ['morning', 'noon', 'evening', 'night'].forEach(period => {
+            if (dayPeriods[period]) forecasts.push(dayPeriods[period]);
+        });
+    });
+    
+    const currentWeather = forecasts[0]; // Use first available forecast as current
     
     // Build the report
-    let report = `Weather report: ${city.toLowerCase()}\n\n`;
+    let report = ``;
     
     // Define standard table width and ensure it's an even number for perfect symmetry
     const tableWidth = 105; // Adjusted to ensure perfect division by 4
@@ -1096,9 +1221,6 @@ function displayWeatherReport(data, city, state, country, lat, lon) {
         report += '═'.repeat(cellWidth - 1) + '╩';
         report += '═'.repeat(cellWidth - 1) + '╝\n';
     });
-    
-    // Add location footer with coordinates formatted like in the template
-    report += `\nLocation: ${city}${state ? ', ' + state : ''}, ${country} [${lat.toFixed(7)},${lon.toFixed(7)}]\n\n`;
     
     // Use the specialized weather output function
     appendWeatherOutput(report);
