@@ -23,7 +23,9 @@ body.windows-device .terminal,
 body.windows-device #cli-input,
 body.windows-device .terminal-output,
 body.windows-device .prompt,
-body.windows-device .command-output {
+body.windows-device .command-output,
+body.windows-device .ascii-art,
+body.windows-device .log-text {
     font-family: monospace, 'Courier New', Consolas;
 }
 
@@ -138,7 +140,6 @@ body.mobile-device .weather-container {
 
 .github:hover {
     color: #8a75a4;
-    background-color: transparent;
 }
 
 .linkedin {
@@ -148,7 +149,6 @@ body.mobile-device .weather-container {
 
 .linkedin:hover {
     color: #1a8bc8;
-    background-color: transparent;
 }
 
 .instagram {
@@ -158,7 +158,6 @@ body.mobile-device .weather-container {
 
 .instagram:hover {
     color: #e45a8a;
-    background-color: transparent;
 }
 
 /* Bio Text Styling */
@@ -197,9 +196,6 @@ body.mobile-device .weather-container {
     display: flex;
     flex-direction: column;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     cursor: text; /* Indicates the area is text-editable */
     position: relative; /* For proper click handling */
     width: 100%; /* Ensure it takes full width */
@@ -212,9 +208,6 @@ body.mobile-device .weather-container {
     overflow-y: auto;
     padding-bottom: 16px;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
 }
 
 .prompt {
@@ -308,9 +301,6 @@ body.mobile-device .weather-container {
 .info-text {
     color: #61afef;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
     line-height: 1.4;
@@ -319,9 +309,6 @@ body.mobile-device .weather-container {
 .error-text {
     color: #e06c75;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -329,9 +316,6 @@ body.mobile-device .weather-container {
 .success-text {
     color: #98c379;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -340,9 +324,6 @@ body.mobile-device .weather-container {
     color: #d19a66;
     font-weight: bold;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -350,9 +331,6 @@ body.mobile-device .weather-container {
 .log-text {
     color: #abb2bf;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
     font-family: 'JetBrains Mono', Consolas, 'Courier New', 'Lucida Console', monospace;
@@ -361,9 +339,6 @@ body.mobile-device .weather-container {
 .warning-text {
     color: #e5c07b;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -373,17 +348,11 @@ body.mobile-device .weather-container {
     display: inline-block;
     min-width: 800px;
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
 }
 
 /* Make sure pre elements are selectable for weather output */
 pre {
     user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
 }
 
 /* Media Queries */

@@ -8,9 +8,6 @@ let currentInputBuffer = '';
 let cursor; // Global cursor element
 let isMobileDevice = false; // Flag to track if we're on a mobile device
 
-// Check if text is currently being selected
-let isSelecting = false;
-
 /**
  * Detects the operating system of the client.
  * @returns {string} The name of the operating system.
@@ -25,15 +22,31 @@ function detectOS() {
     return 'unknown';
 }
 
-// Function to check if the device is mobile using userAgent as a fallback
+/**
+ * Checks if the current device is likely a mobile device based on user agent.
+ * @returns {boolean} True if the device is likely mobile, false otherwise.
+ */
 function isMobile() {
-    // First try using detectOS to check if it's iOS or Android
-    const os = detectOS();
-    if (os === 'android' || os === 'ios') return true;
-    
-    // Fallback to user agent check for devices that may not report platform correctly
+    // Check user agent for common mobile identifiers
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+}
+
+/**
+ * Focuses the terminal input element and positions the cursor at the end.
+ * Ensures the custom cursor position is updated if available.
+ */
+function focusTerminalInput() {
+    if (currentInput) {
+        currentInput.focus();
+        // Position cursor at the end
+        const length = currentInput.value.length;
+        currentInput.setSelectionRange(length, length);
+        // Trigger any cursor update function if defined
+        if (typeof updateCursorPosition === 'function') {
+            updateCursorPosition();
+        }
+    }
 }
 
 // Initialize the terminal interface once the DOM is fully loaded
@@ -61,37 +74,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the CLI 
     initCLI();
     
-    // Ensure terminal input is focused on page load and when window gains focus
-    function focusTerminalInput() {
-        if (currentInput) {
-            currentInput.focus();
-            // Position cursor at the end
-            const length = currentInput.value.length;
-            currentInput.setSelectionRange(length, length);
-            // If we have an updateCursorPosition function defined, call it
-            if (typeof updateCursorPosition === 'function') {
-                updateCursorPosition();
-            }
-        }
-    }
-    
     // Focus terminal on load with a small delay to ensure everything is rendered
     setTimeout(focusTerminalInput, 100);
     
     // Refocus the terminal when the window gets focus
     window.addEventListener('focus', focusTerminalInput);
     
-    // Handle clicks outside the terminal - ensure they don't steal focus
+    // Consolidated click handler for focusing terminal input
     document.addEventListener('click', function(e) {
-        // If the click target is not within the terminal or a child of it
         const terminal = document.querySelector('.terminal');
-        if (!terminal.contains(e.target) && e.target !== terminal) {
-            // Don't do anything special
-        } else {
-            // Click was in the terminal, focus the input after a small delay
-            // This ensures even accidental clicks will focus the terminal
-            setTimeout(focusTerminalInput, 10);
-        }
+        
+        // If click is inside the terminal area
+        if (terminal && terminal.contains(e.target)) {
+            // But not on a link
+            if (e.target.tagName === 'A') return;
+            
+            // And not while selecting text
+            if (window.getSelection().toString().length > 0) return;
+            
+            // Then focus the input (using the global focus function)
+            if (currentInput) { 
+                // Use a small timeout to ensure focus happens after potential selection clearing
+                setTimeout(focusTerminalInput, 10);
+            } 
+        } 
+        // Clicks outside the terminal are ignored regarding focus
     });
     
     // Add a document-level click handler to focus terminal input when clicking anywhere in the terminal
@@ -124,16 +131,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Setup Bio typing animation
+/**
+ * Sets up and starts the bio typing animation effect.
+ */
 function setupBioTypingAnimation() {
     // Bio content - customize this with your personal bio
     const bioText = "Hi, I'm Jakob Langtry. Im a software engineering student at Rochester Institute of Technology. I love to code, I love to learn, and I'd love if you'd check out my projects!";
     
     const typedBioElement = document.getElementById('typed-bio');
-    if (!typedBioElement) return; // Safety check
+    if (!typedBioElement) return; // Guard clause: Ensure element exists
     
     let charIndex = 0;
     
+    /**
+     * Types the next character in the bio text.
+     * Handles the recursive typing effect and hides the cursor when done.
+     */
     function typeText() {
         if (charIndex < bioText.length) {
             typedBioElement.textContent += bioText.charAt(charIndex);
@@ -153,7 +166,9 @@ function setupBioTypingAnimation() {
     setTimeout(typeText, 1000);
 }
 
-// Enable text selection in terminal
+/**
+ * Enables text selection within the terminal output area using CSS properties.
+ */
 function enableTextSelection() {
     const cliOutput = document.getElementById('cli-output');
     if (cliOutput) {
@@ -1655,7 +1670,11 @@ function getWeatherAscii(forecast, isCurrent = false, boxWidth = 46) {
            ` ${precipitation}`;
 }
 
-// Initialize CLI functionality
+/**
+ * Initializes the command-line interface (CLI) functionality.
+ * Sets up the output area, displays initial messages, creates the input line,
+ * and attaches necessary event listeners for input, history, and focus management.
+ */
 function initCLI() {
     cliOutput = document.getElementById('cli-output');
     displayBanner();
@@ -1723,7 +1742,10 @@ function initCLI() {
         updateCursorPosition();
     });
     
-    // Function to update cursor position
+    /**
+     * Updates the position of the custom terminal cursor based on the input field's content
+     * and selection start. Uses a temporary span to measure text width.
+     */
     function updateCursorPosition() {
         if (!currentInput || !cursor) return;
         
@@ -1793,36 +1815,6 @@ function initCLI() {
         setTimeout(() => {
             e.target.selectionStart = e.target.selectionEnd = e.target.value.length;
         }, 0);
-    });
-    
-    // Track mouse selection state
-    document.addEventListener('mousedown', () => {
-        isSelecting = true;
-    });
-    
-    document.addEventListener('mouseup', () => {
-        // Delay setting isSelecting to false to allow for selection to complete
-        setTimeout(() => {
-            isSelecting = false;
-        }, 100);
-    });
-    
-    // Only focus the input if we're not in the middle of selecting text
-    document.addEventListener('click', (e) => {
-        // Check if there's selected text
-        const selection = window.getSelection();
-        
-        // Only focus the input if:
-        // 1. There's no text selected or the selection is empty, AND
-        // 2. We're not in the middle of a selection operation
-        if ((!selection || selection.toString().trim() === '') && !isSelecting) {
-            currentInput.focus();
-        }
-        
-        // If user clicks directly on the input, always focus
-        if (e.target === currentInput) {
-            currentInput.focus();
-        }
     });
 }
 

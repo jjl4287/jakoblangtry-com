@@ -7,7 +7,7 @@ A terminal-style personal website showcasing my professional profile and project
 - HTML5
 - CSS3
 - Vanilla JavaScript
-- Google Cloud Platform for hosting
+
 - Node.js and Express for server-side logic
 
 ## 🚀 Getting Started
@@ -41,17 +41,7 @@ The website features an interactive terminal interface with the following comman
 
 ## 🌐 Deployment
 
-The website is automatically deployed using Google Cloud Build to Google Cloud Storage. The deployment process is configured in `cloudbuild.yaml` and includes:
-
-1. Copying static files to the Cloud Storage bucket
-2. Setting appropriate Cache-Control headers
-3. Configuring public access permissions
-
-### Prerequisites for Deployment
-
-- Google Cloud Platform account
-- Configured Cloud Build trigger
-- Storage bucket named `jakoblangtry.com`
+_(Deployment process description needs update - currently manual or uses a different provider)_ 
 
 ## 📁 Project Structure
 
@@ -61,7 +51,7 @@ jakoblangtry-com/
 ├── styles.css          # CSS styles
 ├── script.js           # Terminal functionality and interactions
 ├── 404.html            # Custom 404 error page
-├── cloudbuild.yaml     # GCP deployment configuration
+
 ├── server.js           # Node.js server setup
 ├── .env                # Environment variables
 └── public/             # Public assets and files
