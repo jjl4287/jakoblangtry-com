@@ -1978,10 +1978,18 @@ async function executeCurlCommand(args) {
             }
         }
         
+        // Ensure URL has a protocol prefix
+        let url = args.url;
+        if (!url.match(/^https?:\/\//i)) {
+            url = 'https://' + url;
+            appendOutput(`> Adding https:// prefix to URL: ${url}`, 'info-text');
+        }
+        
         // Prepare fetch options
         const fetchOptions = {
             method: args.method,
-            headers: args.headers
+            headers: { ...args.headers },
+            credentials: 'omit'
         };
         
         // Add body for methods that support it
@@ -1990,12 +1998,77 @@ async function executeCurlCommand(args) {
         }
         
         // Show a pending message
-        appendOutput(`Making ${args.method} request to ${args.url}...`, 'info-text');
+        appendOutput(`Making ${args.method} request to ${url}...`, 'info-text');
         
-        // Execute the fetch request
-        const response = await fetch(args.url, fetchOptions);
+        // Use a CORS proxy service to bypass CORS restrictions
+        const publicProxies = [
+            { name: 'CORS Anywhere', url: 'https://cors-anywhere.herokuapp.com/' },
+            { name: 'AllOrigins', url: 'https://api.allorigins.win/raw?url=' },
+            { name: 'CORS.sh', url: 'https://cors.sh/' },
+            { name: 'CORS Proxy', url: 'https://corsproxy.io/?' }
+        ];
         
-        // Display response status
+        // Add a custom header to indicate this is a simulated request
+        fetchOptions.headers['X-Requested-With'] = 'XMLHttpRequest';
+        
+        // First try direct request with CORS mode
+        let response;
+        let usedProxy = false;
+        let proxyName = '';
+        
+        try {
+            appendOutput('> Attempting direct request...', 'info-text');
+            fetchOptions.mode = 'cors';
+            response = await fetch(url, fetchOptions);
+            appendOutput('> Direct request successful!', 'success-text');
+        } catch (directError) {
+            // If direct request fails due to CORS, try proxies
+            appendOutput(`> Direct request failed: ${directError.message}`, 'warning-text');
+            appendOutput('> This is likely due to CORS restrictions. Trying proxy services...', 'info-text');
+            
+            // Try each proxy in sequence
+            let proxySuccess = false;
+            
+            for (const proxy of publicProxies) {
+                try {
+                    appendOutput(`> Trying ${proxy.name} proxy...`, 'info-text');
+                    const proxyUrl = proxy.url + encodeURIComponent(url);
+                    
+                    response = await fetch(proxyUrl, fetchOptions);
+                    proxySuccess = true;
+                    usedProxy = true;
+                    proxyName = proxy.name;
+                    appendOutput(`> Successfully connected using ${proxy.name} proxy!`, 'success-text');
+                    break;
+                } catch (proxyError) {
+                    appendOutput(`> ${proxy.name} proxy failed: ${proxyError.message}`, 'warning-text');
+                }
+            }
+            
+            // If all proxies failed, try no-cors mode as a last resort
+            if (!proxySuccess) {
+                appendOutput('> All proxy services failed. Trying no-cors mode as last resort...', 'warning-text');
+                appendOutput('> Note: no-cors mode will limit response data access', 'info-text');
+                
+                fetchOptions.mode = 'no-cors';
+                response = await fetch(url, fetchOptions);
+                appendOutput('> Request sent in no-cors mode', 'info-text');
+            }
+        }
+        
+        // Display response information
+        if (usedProxy) {
+            appendOutput(`Response received via ${proxyName} proxy:`, 'info-text');
+        } else if (fetchOptions.mode === 'no-cors') {
+            appendOutput('Response received in no-cors mode - limited details available:', 'warning-text');
+            appendOutput('Note: no-cors mode restricts access to response details for security reasons', 'info-text');
+            appendOutput('Try using a real terminal for full access to response data', 'info-text');
+            return; // Exit early as we can't access response details in no-cors mode
+        } else {
+            appendOutput('Response received:', 'info-text');
+        }
+        
+        // Display status line
         const statusLine = `HTTP/${response.status} ${response.statusText}`;
         appendOutput(statusLine, response.ok ? 'success-text' : 'error-text');
         
@@ -2009,21 +2082,25 @@ async function executeCurlCommand(args) {
         
         // Get and display response body if not a HEAD request
         if (!args.headOnly) {
-            // Try to get response as text
-            const text = await response.text();
-            
-            // If it looks like JSON, try to format it
-            if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
-                try {
-                    const json = JSON.parse(text);
-                    appendOutput(JSON.stringify(json, null, 2), 'log-text');
-                } catch (e) {
-                    // If parsing fails, just show as text
+            try {
+                // Try to get response as text
+                const text = await response.text();
+                
+                // If it looks like JSON, try to format it
+                if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+                    try {
+                        const json = JSON.parse(text);
+                        appendOutput(JSON.stringify(json, null, 2), 'log-text');
+                    } catch (e) {
+                        // If parsing fails, just show as text
+                        appendOutput(text, 'log-text');
+                    }
+                } else {
+                    // For non-JSON responses
                     appendOutput(text, 'log-text');
                 }
-            } else {
-                // For non-JSON responses
-                appendOutput(text, 'log-text');
+            } catch (textError) {
+                appendOutput(`Unable to read response body: ${textError.message}`, 'error-text');
             }
         }
         
