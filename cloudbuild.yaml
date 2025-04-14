@@ -1,4 +1,4 @@
-# Cloud Build configuration for deploying static website
+# Cloud Build configuration for building the static website
 steps:
   # Step 1: Install pnpm and dependencies
   - name: 'node:18'
@@ -10,7 +10,7 @@ steps:
         pnpm install
     id: 'setup-dependencies'
 
-  # Step 2: Set NODE_ENV to production for build
+  # Step 2: Set NODE_ENV to production for build and copy files
   - name: 'node:18'
     entrypoint: 'bash'
     args:
@@ -24,123 +24,34 @@ steps:
         cp index.html public/
         cp script.js public/
         cp styles.css public/
-        # Start server briefly to generate env.js
-        pnpm start &
-        sleep 5
-        kill $!
+        # Copy 404 page if it exists
+        if [ -f "404.html" ]; then cp 404.html public/; fi
         # Log status
         ls -la public/
     id: 'build-project'
     waitFor: ['setup-dependencies']
 
-  # Step 3: Access OpenWeatherMap API Key from Secret Manager
-  - name: 'gcr.io/cloud-builders/gcloud'
+  # Step 3: Access OpenWeatherMap API Key from Environment Variable
+  - name: 'bash'  # Use a standard bash image
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        API_KEY=$$(gcloud secrets versions access latest --secret=openweathermap-api-key --project=jakoblangtry-com)
+        # Ensure the environment variable is set
+        if [ -z "$OPENWEATHERMAP_API_KEY" ]; then
+          echo "Error: OPENWEATHERMAP_API_KEY environment variable is not set."
+          exit 1
+        fi
         echo "// Client-side environment variables
         const ENV = {
-            OPENWEATHERMAP_API_KEY: '$${API_KEY}'
+            OPENWEATHERMAP_API_KEY: '${OPENWEATHERMAP_API_KEY}'
         };
 
         // Expose the environment to the window
         window.ENV = ENV;" > public/env.js
         # Verify env.js was created (without printing sensitive data)
-        ls -la public/
+        echo "env.js created:"
+        ls -la public/env.js
+        head -n 5 public/env.js # Show first few lines to confirm structure
     id: 'inject-api-key'
     waitFor: ['build-project']
-
-  # Step 4: Copy static files to Cloud Storage bucket with explicit content types
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Copy HTML, JS, CSS files
-        gsutil -m cp -r public/index.html gs://${_BUCKET_NAME}/
-        gsutil -m cp -r public/script.js gs://${_BUCKET_NAME}/
-        gsutil -m cp -r public/styles.css gs://${_BUCKET_NAME}/
-        gsutil -m cp -r public/env.js gs://${_BUCKET_NAME}/
-        
-        # Remove any old profile image if it exists (to prevent confusion)
-        gsutil -m rm -f gs://${_BUCKET_NAME}/IMG_1542.jpeg || true
-        
-        # Copy profile image from IMG_1542.jpeg to the correct location if it exists locally
-        # and if the target doesn't exist yet
-        if [ -f "IMG_1542.jpeg" ]; then
-          echo "Found local profile image, ensuring it's at the correct location..."
-          gsutil stat gs://jakoblangtry.com/profile.jpeg || gsutil cp IMG_1542.jpeg gs://jakoblangtry.com/profile.jpeg
-        else
-          echo "No local profile image found. Please ensure profile.jpeg exists at gs://jakoblangtry.com/"
-        fi
-        
-        # List bucket contents to verify
-        gsutil ls -l gs://${_BUCKET_NAME}/
-        
-        # Set CORS policy on the bucket
-        echo '[{"origin": ["*"],"method": ["GET", "HEAD"],"responseHeader": ["Content-Type", "Content-Length", "Cache-Control"],"maxAgeSeconds": 3600}]' > /tmp/cors.json
-        gsutil cors set /tmp/cors.json gs://${_BUCKET_NAME}
-    id: 'deploy-files'
-    waitFor: ['inject-api-key']
-
-  # Step 5: Set Cache-Control headers for static assets
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['-m', 'setmeta', '-h', 'Cache-Control:public, max-age=3600', 'gs://${_BUCKET_NAME}/**/*.html', 'gs://${_BUCKET_NAME}/**/*.css', 'gs://${_BUCKET_NAME}/**/*.js']
-    id: 'set-cache-control'
-    waitFor: ['deploy-files']
-    
-  # Step 5b: Force no-cache on images to ensure they update properly
-  - name: 'gcr.io/cloud-builders/gsutil'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Force images to have no-cache to ensure they refresh properly
-        # First try with the specific file path if it exists
-        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/profile.jpeg || echo "No profile.jpeg at bucket root"
-        
-        # Then try with wildcards for any other image files, and use || true to prevent errors
-        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpeg || echo "No .jpeg files found"
-        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.jpg || echo "No .jpg files found"
-        gsutil -m setmeta -h "Cache-Control:no-cache, must-revalidate" gs://${_BUCKET_NAME}/**/*.png || echo "No .png files found"
-    id: 'set-image-cache-control'
-    waitFor: ['set-cache-control']
-
-  # Step 6: Set public read access
-  - name: 'gcr.io/cloud-builders/gsutil'
-    args: ['iam', 'ch', 'allUsers:objectViewer', 'gs://${_BUCKET_NAME}']
-    id: 'set-public-access'
-    waitFor: ['set-image-cache-control']
-
-  # Step 7: Verify deployment and check content types
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Listing all files in bucket:"
-        gsutil ls -L gs://${_BUCKET_NAME}/
-        
-        # Verify the profile image is accessible
-        echo "Verifying profile image is accessible:"
-        
-        # Check both possible locations of the profile image
-        (gsutil stat gs://jakoblangtry.com/profile.jpeg && echo "Profile image found at root!") || \
-        (echo "Profile image not found at root, checking in storage...")
-        
-        # Also remind about the correct URL for the image
-        echo "Remember: the correct URL in HTML should be https://storage.googleapis.com/jakoblangtry.com/profile.jpeg?v=3"
-    id: 'verify-deployment'
-    waitFor: ['set-public-access']
-
-options:
-   logging: CLOUD_LOGGING_ONLY
-
-# Substitutions to be configured in Cloud Build trigger
-substitutions:
-  _BUCKET_NAME: 'jakoblangtry.com' # Bucket name for static website hosting
-
-# Timeout for the entire build process
-timeout: '600s'
