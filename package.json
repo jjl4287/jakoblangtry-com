@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "mkdir -p public && cp index.html script.js styles.css public/ && ([ -f 404.html ] && cp 404.html public/) && node scripts/generate-env.js && echo 'Build finished.'"
+    "build": "echo \"DEBUG: Checking OPENWEATHERMAP_API_KEY...\" && echo \"DEBUG: Value is [$OPENWEATHERMAP_API_KEY]\" && mkdir -p public && cp index.html script.js styles.css public/ && ([ -f 404.html ] && cp 404.html public/) && node scripts/generate-env.js && echo 'Build finished.'"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
