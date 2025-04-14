@@ -1,4 +1,0 @@
-{
-  "ignore": ["public/*", "node_modules/*"],
-  "delay": "500"
-} 

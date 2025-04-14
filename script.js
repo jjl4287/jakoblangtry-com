@@ -666,91 +666,78 @@ async function fetchWeather(city) {
             formattedCity = `${formattedCity}, USA`;
         }
         
-        console.log(`Formatted city: ${formattedCity}`); // Debug output
-        
+        console.log(`Formatted city: ${formattedCity}`);
+
         // Try to fetch real weather data
         try {
             // Get API key from window.ENV (injected by server)
             const apiKey = window.ENV?.OPENWEATHERMAP_API_KEY || 'REPLACE_WITH_YOUR_API_KEY';
-            
+
             // If we have a valid API key, use OpenWeatherMap API
             if (apiKey && apiKey !== 'REPLACE_WITH_YOUR_API_KEY' && apiKey !== '') {
                 const geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(formattedCity)}&limit=1&appid=${apiKey}`;
-                
+
                 // First get coordinates for the city
                 const geoResponse = await fetch(geoUrl);
                 const geoData = await geoResponse.json();
-                
-                if (!geoData.length) {
+
+                if (!geoData || !geoData.length) {
                     // Try adding "USA" if it's likely a US city but we couldn't find it
-                    if (!formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')) {
+                    let usGeoData = null;
+                    if (!formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')){
                         const usFormattedCity = `${formattedCity}, USA`;
                         const usGeoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(usFormattedCity)}&limit=1&appid=${apiKey}`;
                         
-                        const usGeoResponse = await fetch(usGeoUrl);
-                        const usGeoData = await usGeoResponse.json();
-                        
-                        if (usGeoData.length) {
-                            const { lat, lon, name, state, country } = usGeoData[0];
-                            
-                            // Now fetch the weather forecast with the coordinates
-                            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
-                            const weatherResponse = await fetch(forecastUrl);
-                            const weatherData = await weatherResponse.json();
-                            
-                            // Display the weather report
-                            displayWeatherReport(weatherData, name, state, country, lat, lon);
-                            return;
+                        try {
+                            const usGeoResponse = await fetch(usGeoUrl);
+                            usGeoData = await usGeoResponse.json();
+                        } catch (geoError) {
+                            console.warn("Error fetching geo data with USA appended:", geoError);
+                            usGeoData = null; // Ensure it's null on error
                         }
                     }
-                    
-                    appendOutput(`City "${city}" not found. Please try a different format like "City, State" or "City, Country".`, 'error-text');
-                    return;
+
+                    if (usGeoData && usGeoData.length) {
+                        const { lat, lon, name, state, country } = usGeoData[0];
+                        // Now fetch the weather forecast with the coordinates
+                        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+                        const weatherResponse = await fetch(forecastUrl);
+                        const weatherData = await weatherResponse.json();
+                        // Display the weather report
+                        displayWeatherReport(weatherData, name, state, country, lat, lon);
+                        return;
+                    } else {
+                        // If still not found, show error
+                        appendOutput(`City "${city}" not found. Please try a different format like "City, State" or "City, Country".`, 'error-text');
+                        return;
+                    }
                 }
-                
+
                 const { lat, lon, name, state, country } = geoData[0];
-                
+
                 // Now fetch the weather forecast with the coordinates
                 const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
                 const weatherResponse = await fetch(forecastUrl);
                 const weatherData = await weatherResponse.json();
-                
+
                 // Display the weather report
                 displayWeatherReport(weatherData, name, state, country, lat, lon);
-                return;
+                return; // Successfully fetched and displayed OpenWeatherMap data
             }
-            
-            // Alternatively, try using weatherapi.com (free tier, no API key required for demo)
-            const weatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=0236abd99deb4da5ace70557231307&q=${encodeURIComponent(formattedCity)}&days=3&aqi=no&alerts=no`;
-            const response = await fetch(weatherApiUrl);
-            
-            if (response.ok) {
-                const data = await response.json();
-                displayWeatherApiReport(data);
-                return;
-            } else {
-                // If the first API call failed, try with "USA" added for potential US cities
-                if (!formattedCity.toLowerCase().includes('usa') && !formattedCity.toLowerCase().includes('us')) {
-                    const usFormattedCity = `${formattedCity}, USA`;
-                    const usWeatherApiUrl = `https://api.weatherapi.com/v1/forecast.json?key=0236abd99deb4da5ace70557231307&q=${encodeURIComponent(usFormattedCity)}&days=3&aqi=no&alerts=no`;
-                    
-                    const usResponse = await fetch(usWeatherApiUrl);
-                    if (usResponse.ok) {
-                        const usData = await usResponse.json();
-                        displayWeatherApiReport(usData);
-                        return;
-                    }
-                }
-            }
+
+            // If no valid OpenWeatherMap API key was found or the call failed previously, fall through to simulation
+            console.log('OpenWeatherMap API key not found or initial calls failed. Falling back to simulation.');
+
         } catch (error) {
-            console.error("API error:", error);
+            console.error("API error during OpenWeatherMap fetch:", error);
+            appendOutput(`Error fetching weather data: ${error.message}. Falling back to simulated data.`, 'error-text');
             // If API calls fail, fall back to simulated data
         }
-        
+
         // Fallback to simulated data if no API key or API calls fail
         const simulatedData = generateSimulatedWeatherData(formattedCity);
         displaySimulatedWeatherReport(simulatedData, formattedCity);
-        
+
     } catch (error) {
         appendOutput(`Error fetching weather data: ${error.message}`, 'error-text');
     }
@@ -801,210 +788,6 @@ function appendWeatherOutput(text) {
             selection.addRange(selectionRange);
         }, 0);
     }
-}
-
-/**
- * Displays weather data from the Weather API.
- * @param {Object} data - The weather data from the API.
- */
-function displayWeatherApiReport(data) {
-    const city = data.location.name;
-    const region = data.location.region;
-    const country = data.location.country;
-    const lat = data.location.lat;
-    const lon = data.location.lon;
-    
-    // Build the report
-    let report = `Weather report: ${city}\n\n`;
-    
-    // Current weather
-    const currentWeather = {
-        weather: [{
-            main: data.current.condition.text,
-            description: data.current.condition.text
-        }],
-        main: {
-            temp: data.current.temp_c,
-            feels_like: data.current.feelslike_c
-        },
-        wind: {
-            speed: data.current.wind_kph / 3.6, // Convert km/h to m/s for consistent formatting
-            deg: data.current.wind_degree
-        },
-        visibility: data.current.vis_km * 1000, // Convert km to m for consistent formatting
-        rain: data.current.precip_mm > 0 ? { '3h': data.current.precip_mm } : null,
-        snow: null // API doesn't distinguish rain from snow in current conditions
-    };
-    
-    report += getWeatherAscii(currentWeather);
-    
-    // Process forecast days
-    data.forecast.forecastday.forEach(day => {
-        // Add horizontal separator
-        report += '\n';
-        for (let i = 0; i < 104; i++) report += '─';
-        report += '\n';
-        
-        // Format date header
-        const date = new Date(day.date);
-        const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
-        const dayOfMonth = date.getDate();
-        const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()];
-        
-        // Add date header centered
-        const dateHeader = `${dayOfWeek} ${dayOfMonth} ${month}`;
-        const padding = Math.floor((104 - dateHeader.length) / 2);
-        report += ' '.repeat(padding) + dateHeader + '\n';
-        
-        // Table header row
-        report += '|' + ' '.repeat(8) + 'Morning' + ' '.repeat(8) + '|';
-        report += ' '.repeat(10) + 'Noon' + ' '.repeat(12) + '|';
-        report += ' '.repeat(8) + 'Evening' + ' '.repeat(9) + '|';
-        report += ' '.repeat(9) + 'Night' + ' '.repeat(11) + '|\n';
-        
-        // Extract time periods from the hourly data
-        const hours = day.hour;
-        const morning = hours.find(h => new Date(h.time).getHours() === 8) || hours[0];
-        const noon = hours.find(h => new Date(h.time).getHours() === 12) || hours[4];
-        const evening = hours.find(h => new Date(h.time).getHours() === 18) || hours[8];
-        const night = hours.find(h => new Date(h.time).getHours() === 22) || hours[12];
-        
-        // Format each period into the weather API format for our helper functions
-        const formatPeriod = (period) => ({
-            weather: [{
-                main: period.condition.text,
-                description: period.condition.text
-            }],
-            main: {
-                temp: period.temp_c,
-                feels_like: period.feelslike_c
-            },
-            wind: {
-                speed: period.wind_kph / 3.6, // Convert km/h to m/s
-                deg: period.wind_degree
-            },
-            visibility: period.vis_km * 1000, // Convert km to m
-            rain: period.precip_mm > 0 ? { '3h': period.precip_mm } : null,
-            snow: null, // API doesn't distinguish rain from snow
-            pop: period.chance_of_rain / 100 // Convert percentage to decimal
-        });
-        
-        const periods = {
-            morning: formatPeriod(morning),
-            noon: formatPeriod(noon),
-            evening: formatPeriod(evening),
-            night: formatPeriod(night)
-        };
-        
-        // Build the table rows using our compact format
-        report += buildCompactRow(periods, 'condition');
-        report += buildCompactRow(periods, 'temp');
-        report += buildCompactRow(periods, 'wind');
-        report += buildCompactRow(periods, 'visibility');
-        report += buildCompactRow(periods, 'precip');
-    });
-    
-    // Add location footer
-    report += `\nLocation: ${city}, ${region || ''}, ${country} [${lat.toFixed(7)},${lon.toFixed(7)}]\n\n`;
-
-    
-    // Use the new specialized weather output function
-    appendWeatherOutput(report);
-}
-
-/**
- * Generates simulated weather data for a city.
- * @param {string} city - The city for which to generate simulated data.
- * @returns {Object} Simulated weather data.
- */
-function generateSimulatedWeatherData(city) {
-    // Get current date and simulate 3 days
-    const now = new Date();
-    const simulated = {
-        city: city,
-        country: 'Simulation',
-        lat: 40.7128,
-        lon: -74.0060,
-        list: []
-    };
-    
-    // Weather conditions to cycle through
-    const conditions = [
-        { main: 'Clear', description: 'clear sky' },
-        { main: 'Clouds', description: 'few clouds' },
-        { main: 'Clouds', description: 'scattered clouds' },
-        { main: 'Clouds', description: 'overcast clouds' },
-        { main: 'Rain', description: 'light rain' },
-        { main: 'Rain', description: 'moderate rain' },
-        { main: 'Snow', description: 'light snow' },
-        { main: 'Snow', description: 'moderate snow' }
-    ];
-    
-    // Generate data for 3 days, 4 time periods each day
-    for (let day = 0; day < 3; day++) {
-        const date = new Date(now);
-        date.setDate(now.getDate() + day);
-        
-        // Generate for morning, noon, evening, night
-        const hours = [8, 12, 18, 22];
-        
-        hours.forEach((hour, index) => {
-            date.setHours(hour);
-            
-            // Base temperature with some random variation, colder at night
-            let baseTemp = 15; // Base temp
-            if (hour < 10) baseTemp -= 5; // Colder in morning
-            if (hour > 20) baseTemp -= 8; // Colder at night
-            
-            // Random daily fluctuation
-            baseTemp += day * 2; // Gets warmer each day
-            
-            // Add some randomness
-            const temp = baseTemp + (Math.random() * 10 - 5);
-            
-            // Random weather condition
-            const conditionIndex = Math.floor(Math.random() * conditions.length);
-            const condition = conditions[conditionIndex];
-            
-            // Random wind
-            const windSpeed = 2 + Math.random() * 8; // m/s
-            const windDeg = Math.floor(Math.random() * 360);
-            
-            // Random visibility
-            const visibility = 5000 + Math.floor(Math.random() * 15000);
-            
-            // Random precipitation
-            const hasPrecip = condition.main === 'Rain' || condition.main === 'Snow';
-            const precip = hasPrecip ? (Math.random() * 5).toFixed(1) : 0;
-            
-            // Create forecast entry
-            const forecast = {
-                dt: Math.floor(date.getTime() / 1000),
-                main: {
-                    temp: temp,
-                    feels_like: temp - 2 - Math.random() * 3
-                },
-                weather: [condition],
-                wind: {
-                    speed: windSpeed,
-                    deg: windDeg
-                },
-                visibility: visibility,
-                pop: hasPrecip ? Math.random() : 0
-            };
-            
-            // Add precipitation data if applicable
-            if (condition.main === 'Rain') {
-                forecast.rain = { '3h': parseFloat(precip) };
-            } else if (condition.main === 'Snow') {
-                forecast.snow = { '3h': parseFloat(precip) };
-            }
-            
-            simulated.list.push(forecast);
-        });
-    }
-    
-    return simulated;
 }
 
 /**
