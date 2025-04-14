@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "build": "mkdir -p public && cp index.html script.js styles.css public/ && ([ -f 404.html ] && cp 404.html public/) && if [ -z \"$OPENWEATHERMAP_API_KEY\" ]; then echo 'Error: OPENWEATHERMAP_API_KEY env var not set.' && exit 1; fi && echo \"// Client-side environment variables\\nconst ENV = {\\n    OPENWEATHERMAP_API_KEY: '${OPENWEATHERMAP_API_KEY}'\\n};\\n\\n// Expose the environment to the window\\nwindow.ENV = ENV;\" > public/env.js && echo 'Build finished.'"
   },
   "dependencies": {
     "dotenv": "^16.0.3",
