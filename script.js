@@ -749,9 +749,9 @@ async function fetchWeather(city) {
             // If API calls fail, fall back to simulated data
         }
 
-        // Fallback to simulated data if no API key or API calls fail
-        const simulatedData = generateSimulatedWeatherData(formattedCity);
-        displaySimulatedWeatherReport(simulatedData, formattedCity);
+        // Remove fallback to simulated data
+        appendOutput(`Error fetching weather data: Unable to retrieve data from OpenWeatherMap.`, 'error-text');
+        return;
 
     } catch (error) {
         appendOutput(`Error fetching weather data: ${error.message}`, 'error-text');
