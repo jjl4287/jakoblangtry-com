@@ -327,6 +327,9 @@ AVAILABLE COMMANDS:
   curl       Simulate HTTP requests (educational purposes only)
              Usage: curl [URL]
 
+  qr         Generate a QR code for a URL
+             Usage: qr [URL]
+
   date       Display the current date and time
              Usage: date
 
@@ -443,6 +446,9 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
         case 'curl':
             appendOutput('Usage: curl [URL]', 'info-text');
             break;
+        case 'qr':
+            appendOutput('Usage: qr [URL]\nGenerates a QR code for the provided URL and shows a download button.', 'info-text');
+            break;
         default:
             if (normalizedCommand === 'converter') {
                 appendOutput('Opening Link Converter...');
@@ -458,6 +464,53 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
                 }
                 
                 executeCurlCommand(args);
+                break;
+            } else if (normalizedCommand.startsWith('qr ')) {
+                const target = command.substring(3).trim();
+                if (!target) {
+                    appendOutput('Usage: qr [URL]', 'info-text');
+                    break;
+                }
+                const selection = window.getSelection();
+                const selectedText = selection.toString();
+                let selectionRange = null;
+                if (selection.rangeCount > 0) {
+                    selectionRange = selection.getRangeAt(0).cloneRange();
+                }
+                const container = document.createElement('div');
+                container.className = 'command-output qr-container';
+                const title = document.createElement('div');
+                title.className = 'qr-title';
+                title.textContent = `QR code for: ${target}`;
+                const img = document.createElement('img');
+                img.className = 'qr-img';
+                const encoded = encodeURIComponent(target);
+                const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encoded}`;
+                img.src = imgUrl;
+                img.alt = `QR code for ${target}`;
+                const actions = document.createElement('div');
+                actions.className = 'qr-actions';
+                const download = document.createElement('a');
+                download.className = 'qr-download-btn';
+                download.href = imgUrl;
+                download.download = 'qr.png';
+                download.textContent = 'Download QR';
+                actions.appendChild(download);
+                container.appendChild(title);
+                container.appendChild(img);
+                container.appendChild(actions);
+                if (inputLine && inputLine.parentNode === cliOutput) {
+                    cliOutput.insertBefore(container, inputLine);
+                } else {
+                    cliOutput.appendChild(container);
+                }
+                cliOutput.scrollTop = cliOutput.scrollHeight;
+                if (selectedText && selectionRange) {
+                    setTimeout(() => {
+                        selection.removeAllRanges();
+                        selection.addRange(selectionRange);
+                    }, 0);
+                }
                 break;
             } else if (normalizedCommand.startsWith('weather ')) {
                 const city = command.substring(8).trim(); // Get everything after "weather "
@@ -514,6 +567,12 @@ function displayCommandHelp(command) {
                 'curl -X POST -H "Content-Type: application/json" -d \'{"key":"value"}\' https://api.example.org/data'
             ],
             notes: 'Supports common curl options like -X (method), -H (headers), -d (data), -I (head), -o (output), -v (verbose).'
+        },
+        qr: {
+            desc: 'Generate a QR code image for a given URL and provide a download button.',
+            usage: 'qr [URL]',
+            examples: ['qr https://jakoblangtry.com', 'qr github.com/jjl4287'],
+            notes: 'Uses a public QR API. Ensure the URL is correct before sharing.'
         },
         date: {
             desc: 'Display the current date and time based on your local timezone.',

@@ -457,3 +457,41 @@ pre {
         overflow-x: auto;
     }
 }
+
+/* QR generator styles */
+.qr-container {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.qr-title {
+    color: #61afef;
+}
+
+.qr-img {
+    width: 256px;
+    height: 256px;
+    image-rendering: pixelated;
+    background: #ffffff;
+    border: 1px solid #3d3d3d;
+}
+
+.qr-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.qr-download-btn {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 1px solid #98c379;
+    color: #98c379;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.qr-download-btn:hover {
+    background: rgba(152, 195, 121, 0.12);
+}
