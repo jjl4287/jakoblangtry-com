@@ -423,7 +423,7 @@ Type 'resume' to view my resume or 'projects' to see my work.`, 'info-text');
             break;
         case 'resume':
             appendOutput('Opening resume...');
-            window.open('JakobLangtryFeb25.pdf', '_blank');
+            window.open('JakobLangtrySep25.pdf', '_blank');
             break;
         case 'projects':
             const projectsList = [
